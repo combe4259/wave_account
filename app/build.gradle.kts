@@ -79,6 +79,8 @@ dependencies {
 
     // 카메라 권한 및 파일 접근
     implementation("androidx.activity:activity-compose:1.8.2")
+    implementation("androidx.activity:activity-ktx:1.8.2")
+
 
 
     // 이미지 처리
