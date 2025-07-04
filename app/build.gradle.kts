@@ -68,5 +68,20 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
+
+    implementation("androidx.compose.material:material-icons-extended:1.6.1")
+
+    // 이미지 로딩 및 처리를 위한 Coil
+    implementation("io.coil-kt:coil-compose:2.5.0")
+
+    // 카메라 권한 및 파일 접근
+    implementation("androidx.activity:activity-compose:1.8.2")
+
+
+    // 이미지 처리
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    ksp("com.github.bumptech.glide:compiler:4.16.0")
 }
