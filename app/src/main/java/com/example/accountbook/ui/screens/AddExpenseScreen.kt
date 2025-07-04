@@ -1,5 +1,8 @@
 package com.example.accountbook.ui.screens
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -7,8 +10,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
@@ -23,12 +26,16 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.accountbook.model.Expense
 import com.example.accountbook.view.ExpenseViewModel
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +55,8 @@ fun AddExpenseScreen(
     var isExpanded by remember { mutableStateOf(false) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var showImageOptionsDialog by remember { mutableStateOf(false) }
+    var showPermissionDialog by remember { mutableStateOf(false) }
+    var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
 
     val categories = listOf("식비", "교통비", "쇼핑", "문화생활", "의료", "기타")
     val dateFormat = SimpleDateFormat("yyyy년 MM월 dd일", Locale.KOREA)
@@ -56,6 +65,8 @@ fun AddExpenseScreen(
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = selectedDate
     )
+
+
 
     // 갤러리에서 이미지 선택
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -68,16 +79,27 @@ fun AddExpenseScreen(
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success: Boolean ->
-        if (!success) {
-            selectedImageUri = null
+        if (success) {
+            selectedImageUri = tempCameraUri
+        } else {
+            tempCameraUri = null
+        }
+    }
+    // 권한 요청 런처
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // 권한이 허용되면 카메라 실행
+            launchCamera(context) { uri ->
+                tempCameraUri = uri
+                cameraLauncher.launch(uri)
+            }
+        } else {
+            showPermissionDialog = true
         }
     }
 
-    // 카메라 임시 URI 생성 함수
-    fun createImageUri(): Uri {
-        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        return Uri.parse("content://com.example.accountbook.fileprovider/images/JPEG_${timeStamp}.jpg")
-    }
 
     Scaffold(
         topBar = {
@@ -93,7 +115,7 @@ fun AddExpenseScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
                     }
                 }
             )
@@ -240,10 +262,22 @@ fun AddExpenseScreen(
     if (showImageOptionsDialog) {
         ImageOptionsDialog(
             onCameraClick = {
-                val uri = createImageUri()
-                selectedImageUri = uri
-                cameraLauncher.launch(uri)
                 showImageOptionsDialog = false
+                // 카메라 권한 확인
+                if (ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.CAMERA
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    // 권한이 있으면 바로 카메라 실행
+                    launchCamera(context) { uri ->
+                        tempCameraUri = uri
+                        cameraLauncher.launch(uri)
+                    }
+                } else {
+                    // 권한 요청
+                    permissionLauncher.launch(Manifest.permission.CAMERA)
+                }
             },
             onGalleryClick = {
                 galleryLauncher.launch("image/*")
@@ -253,6 +287,45 @@ fun AddExpenseScreen(
                 showImageOptionsDialog = false
             }
         )
+    }
+
+    // 권한 거부 다이얼로그
+    if (showPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showPermissionDialog = false },
+            title = { Text("카메라 권한 필요") },
+            text = {
+                Text("사진을 촬영하려면 카메라 권한이 필요합니다. 설정에서 권한을 허용해주세요.")
+            },
+            confirmButton = {
+                TextButton(onClick = { showPermissionDialog = false }) {
+                    Text("확인")
+                }
+            }
+        )
+    }
+}
+
+// 카메라 실행을 위한 유틸리티 함수
+private fun launchCamera(context: Context, onUriCreated: (Uri) -> Unit) {
+    try {
+        val photoFile = File(
+            context.getExternalFilesDir("Pictures"),
+            "expense_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.jpg"
+        )
+
+        // 디렉토리가 없으면 생성
+        photoFile.parentFile?.mkdirs()
+
+        val photoUri = FileProvider.getUriForFile(
+            context,
+            "com.example.accountbook.fileprovider",
+            photoFile
+        )
+
+        onUriCreated(photoUri)
+    } catch (e: Exception) {
+        e.printStackTrace()
     }
 }
 
@@ -320,10 +393,6 @@ fun ImageSection(
                     .clickable { onImageClick() },
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
-                ),
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                 )
             ) {
                 Column(
@@ -427,9 +496,6 @@ fun ImageOptionsDialog(
     )
 }
 
-/**
- * 재사용 가능한 날짜 선택 다이얼로그 컴포넌트
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatePickerDialog(
