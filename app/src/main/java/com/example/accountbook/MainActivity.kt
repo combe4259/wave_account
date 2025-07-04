@@ -16,16 +16,26 @@ import androidx.compose.ui.Modifier
 import com.example.accountbook.ui.theme.AccountBookTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import com.example.accountbook.view.ExpenseViewModel
 import com.example.accountbook.ui.screens.ExpenseListScreen
 import com.example.accountbook.ui.screens.AddExpenseScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.accountbook.ui.screens.ExpenseGalleryScreen
+import com.example.accountbook.ui.screens.ExpenseStatisticsScreen
 
 
 class MainActivity : ComponentActivity() {
@@ -40,14 +50,26 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+sealed class Screen(val route: String, val icon: ImageVector, val title: String) {
+    object List       : Screen("list",       Icons.Default.Home,     "가계부")
+    object Add        : Screen("add",        Icons.Default.Add,      "추가")
+    object Gallery    : Screen("gallery",    Icons.Default.Star,     "갤러리")
+    object Statistics : Screen("statistics", Icons.Default.Settings, "통계")
+}
+
+val bottomNavItems = listOf(
+    Screen.List,
+    Screen.Gallery,
+    Screen.Statistics
+)
+
 @Composable
 fun AccountBookApp() {
-    var currentScreen by remember { mutableStateOf("list") } //네비게이션 기억
+    var currentScreen by remember { mutableStateOf<Screen>(Screen.List) }
     val viewModel: ExpenseViewModel = viewModel()
 
     Scaffold(
         topBar = {
-
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -62,43 +84,54 @@ fun AccountBookApp() {
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
-                        text = when (currentScreen) {
-                            "list" -> "가계부"
-                            "add" -> "지출 추가"
-                            else -> "가계부"
-                        },
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Medium,
+                        text = currentScreen.title,
+                        style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
             }
         },
         floatingActionButton = {
-            if (currentScreen == "list") {
+            if (currentScreen == Screen.List) {
                 FloatingActionButton(
-                    onClick = { currentScreen = "add" }
+                    onClick = { currentScreen = Screen.Add }
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "지출 추가")
                 }
             }
+        },
+        bottomBar = {
+            NavigationBar {
+                bottomNavItems.forEach { screen ->
+                    NavigationBarItem(
+                        icon =    { Icon(screen.icon, contentDescription = screen.title) },
+                        label =   { Text(screen.title) },
+                        selected = currentScreen == screen,
+                        onClick = { currentScreen = screen }
+                    )
+                }
+            }
         }
     ) { paddingValues ->
-        when (currentScreen) {
-            "list" -> ExpenseListScreen(
-                viewModel = viewModel,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                onNavigateToAdd = { currentScreen = "add" }
-            )
-            "add" -> AddExpenseScreen(
-                viewModel = viewModel,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                onNavigateBack = { currentScreen = "list" }
-            )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            when (currentScreen) {
+                Screen.List -> ExpenseListScreen(
+                    viewModel = viewModel,
+                    modifier = Modifier.fillMaxSize(),
+                    onNavigateToAdd = { currentScreen = Screen.Add }
+                )
+                Screen.Gallery -> ExpenseGalleryScreen(modifier = Modifier.fillMaxSize())
+                Screen.Statistics -> ExpenseStatisticsScreen(modifier = Modifier.fillMaxSize())
+                Screen.Add -> AddExpenseScreen(
+                    viewModel = viewModel,
+                    modifier = Modifier.fillMaxSize(),
+                    onNavigateBack = { currentScreen = Screen.List }
+                )
+            }
         }
     }
 }
