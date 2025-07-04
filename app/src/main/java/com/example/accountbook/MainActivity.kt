@@ -17,10 +17,12 @@ import com.example.accountbook.ui.theme.AccountBookTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,6 +36,8 @@ import com.example.accountbook.view.ExpenseViewModel
 import com.example.accountbook.ui.screens.ExpenseListScreen
 import com.example.accountbook.ui.screens.AddExpenseScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.accountbook.ui.screens.CalendarMainScreen
+import com.example.accountbook.ui.screens.DailyExpenseScreen
 import com.example.accountbook.ui.screens.ExpenseGalleryScreen
 import com.example.accountbook.ui.screens.ExpenseStatisticsScreen
 
@@ -51,64 +55,67 @@ class MainActivity : ComponentActivity() {
 }
 
 sealed class Screen(val route: String, val icon: ImageVector, val title: String) {
-    object List       : Screen("list",       Icons.Default.Home,     "가계부")
-    object Add        : Screen("add",        Icons.Default.Add,      "추가")
+
+    object Calendar : Screen("calendar", Icons.Default.DateRange, "가계부")
     object Gallery    : Screen("gallery",    Icons.Default.Star,     "갤러리")
     object Statistics : Screen("statistics", Icons.Default.Settings, "통계")
+
+    data class DailyDetail(val date: Long) : Screen("daily_detail", Icons.Default.Today, "일별 상세")
+    data class AddExpense(val date: Long? = null) : Screen("add_expense", Icons.Default.Add, "지출 추가")
 }
 
+
+
+
 val bottomNavItems = listOf(
-    Screen.List,
+    Screen.Calendar,
     Screen.Gallery,
     Screen.Statistics
 )
 
 @Composable
 fun AccountBookApp() {
-    var currentScreen by remember { mutableStateOf<Screen>(Screen.List) }
+    var currentScreen by remember { mutableStateOf<Screen>(Screen.Calendar) }
     val viewModel: ExpenseViewModel = viewModel()
 
     Scaffold(
         topBar = {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-                tonalElevation = 4.dp
-            ) {
-                Box(
+            // 일별 상세 화면과 지출 추가 화면에서는 자체 TopBar 사용
+            if (currentScreen !is Screen.DailyDetail && currentScreen !is Screen.AddExpense) {
+                Surface(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.CenterStart
+                        .fillMaxWidth()
+                        .height(64.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    tonalElevation = 4.dp
                 ) {
-                    Text(
-                        text = currentScreen.title,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
-        },
-        floatingActionButton = {
-            if (currentScreen == Screen.List) {
-                FloatingActionButton(
-                    onClick = { currentScreen = Screen.Add }
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "지출 추가")
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        Text(
+                            text = currentScreen.title,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
                 }
             }
         },
         bottomBar = {
-            NavigationBar {
-                bottomNavItems.forEach { screen ->
-                    NavigationBarItem(
-                        icon =    { Icon(screen.icon, contentDescription = screen.title) },
-                        label =   { Text(screen.title) },
-                        selected = currentScreen == screen,
-                        onClick = { currentScreen = screen }
-                    )
+            // 세부 화면에서는 하단 네비게이션 숨김
+            if (currentScreen !is Screen.DailyDetail && currentScreen !is Screen.AddExpense) {
+                NavigationBar {
+                    bottomNavItems.forEach { screen ->
+                        NavigationBarItem(
+                            icon = { Icon(screen.icon, contentDescription = screen.title) },
+                            label = { Text(screen.title) },
+                            selected = currentScreen::class == screen::class,
+                            onClick = { currentScreen = screen }
+                        )
+                    }
                 }
             }
         }
@@ -118,18 +125,53 @@ fun AccountBookApp() {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when (currentScreen) {
-                Screen.List -> ExpenseListScreen(
+            // 스마트 캐스트 문제를 해결하기 위해 현재 화면을 지역 변수에 저장
+            val screen = currentScreen
+
+            when (screen) {
+                // 메인 가계부 화면 - 달력
+                is Screen.Calendar -> CalendarMainScreen(
                     viewModel = viewModel,
                     modifier = Modifier.fillMaxSize(),
-                    onNavigateToAdd = { currentScreen = Screen.Add }
+                    onDateSelected = { selectedDate ->
+                        // 달력에서 날짜를 클릭하면 해당 날짜의 상세 화면으로 이동
+                        currentScreen = Screen.DailyDetail(selectedDate)
+                    }
                 )
-                Screen.Gallery -> ExpenseGalleryScreen(modifier = Modifier.fillMaxSize())
-                Screen.Statistics -> ExpenseStatisticsScreen(modifier = Modifier.fillMaxSize())
-                Screen.Add -> AddExpenseScreen(
+
+                // 갤러리 화면
+                is Screen.Gallery -> ExpenseGalleryScreen(
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                // 통계 화면
+                is Screen.Statistics -> ExpenseStatisticsScreen(
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                // 일별 상세 화면
+                is Screen.DailyDetail -> DailyExpenseScreen(
+                    selectedDate = screen.date, // 이제 스마트 캐스트가 작동함
                     viewModel = viewModel,
                     modifier = Modifier.fillMaxSize(),
-                    onNavigateBack = { currentScreen = Screen.List }
+                    onNavigateBack = {
+                        // 뒤로 버튼을 누르면 달력으로 돌아감
+                        currentScreen = Screen.Calendar
+                    },
+                    onNavigateToAdd = { date ->
+                        // 지출 추가 버튼을 누르면 선택된 날짜로 지출 추가 화면 이동
+                        currentScreen = Screen.AddExpense(date)
+                    }
+                )
+
+                // 지출 추가 화면
+                is Screen.AddExpense -> AddExpenseScreen(
+                    viewModel = viewModel,
+                    modifier = Modifier.fillMaxSize(),
+                    onNavigateBack = {
+                        // 지출 추가 완료 후 달력으로 돌아감
+                        currentScreen = Screen.Calendar
+                    }
                 )
             }
         }
