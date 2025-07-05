@@ -24,7 +24,6 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarMainScreen(
     viewModel: ExpenseViewModel,
@@ -322,9 +321,6 @@ fun isToday(date: Long): Boolean {
 }
 
 fun formatCurrency(amount: Double): String {
-    return when {
-        amount >= 10000 -> "${(amount / 10000).toInt()}만"
-        amount >= 1000 -> "${(amount / 1000).toInt()}천"
-        else -> "${amount.toInt()}"
-    }
+    val formatter = NumberFormat.getNumberInstance(Locale.KOREA)
+    return formatter.format(amount.toInt())
 }

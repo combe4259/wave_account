@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 
 class ExpenseViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository: ExpenseRepository
+    val repository: ExpenseRepository
     val allExpenses: LiveData<List<Expense>>
     val expensesWithPhotos: LiveData<List<Expense>>
 
@@ -21,7 +21,7 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         val expenseDao = ExpenseDatabase.getDatabase(application).expenseDao()
         repository = ExpenseRepository(expenseDao)
         allExpenses = repository.allExpenses
-        expensesWithPhotos = repository.expensesWithPhotos
+        expensesWithPhotos = repository.getExpensesWithValidPhotos()
     }
 
     // 지출 추가

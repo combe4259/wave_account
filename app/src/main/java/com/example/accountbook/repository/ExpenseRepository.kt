@@ -2,6 +2,7 @@ package com.example.accountbook.repository
 
 
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.map
 import com.example.accountbook.local.ExpenseDao
 import com.example.accountbook.model.Expense
 
@@ -9,9 +10,22 @@ class ExpenseRepository(private val expenseDao: ExpenseDao) {
 
     // 모든 지출 데이터
     val allExpenses: LiveData<List<Expense>> = expenseDao.getAllExpenses()
+//    fun getAllExpenses(): LiveData<List<Expense>> {
+//        return expenseDao.getAllExpenses()
+//    }
 
     // 사진이 있는 지출만
-    val expensesWithPhotos: LiveData<List<Expense>> = expenseDao.getExpensesWithPhotos()
+//    val expensesWithPhotos: LiveData<List<Expense>> = expenseDao.getExpensesWithPhotos()
+    fun getExpensesWithValidPhotos(): LiveData<List<Expense>> {
+        return expenseDao.getExpensesWithPhotos().map { expenses ->
+            expenses.filter { expense ->
+                // photoUri가 유효한 형태인지 검증
+                expense.photoUri?.let { uri ->
+                    uri.isNotBlank() && (uri.startsWith("content://") || uri.startsWith("file://"))
+                } ?: false
+            }
+        }
+    }
 
     // 지출 추가
     suspend fun insertExpense(expense: Expense): Long {
