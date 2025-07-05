@@ -33,13 +33,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import com.example.accountbook.view.ExpenseViewModel
-import com.example.accountbook.ui.screens.ExpenseListScreen
 import com.example.accountbook.ui.screens.AddExpenseScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.accountbook.ui.screens.CalendarMainScreen
 import com.example.accountbook.ui.screens.DailyExpenseScreen
 import com.example.accountbook.ui.screens.ExpenseGalleryScreen
 import com.example.accountbook.ui.screens.ExpenseStatisticsScreen
+import com.example.accountbook.view.ExpenseGalleryViewModel
 
 
 class MainActivity : ComponentActivity() {
@@ -141,6 +141,7 @@ fun AccountBookApp() {
 
                 // 갤러리 화면
                 is Screen.Gallery -> ExpenseGalleryScreen(
+                    viewModel = viewModel,
                     modifier = Modifier.fillMaxSize()
                 )
 
