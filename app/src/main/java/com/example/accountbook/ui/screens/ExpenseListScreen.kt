@@ -126,11 +126,11 @@ fun ExpenseItem(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = expense.category,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+//                    Text(
+//                        text = expense.category,
+//                        style = MaterialTheme.typography.bodySmall,
+//                        color = MaterialTheme.colorScheme.primary
+//                    )
                     Text(
                         text = "•",
                         style = MaterialTheme.typography.bodySmall,

@@ -345,10 +345,10 @@ fun DailyExpenseList(
                     )
 
                     // 카테고리
-                    DetailRow(
-                        label = "카테고리",
-                        value = expense.category
-                    )
+//                    DetailRow(
+//                        label = "카테고리",
+//                        //value = expense.category
+//                    )
 
                     // 금액
                     DetailRow(
