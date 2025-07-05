@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,27 +21,54 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.accountbook.ui.theme.MainColor
+import com.example.accountbook.view.ExpenseViewModel
 import com.github.mikephil.charting.animation.Easing
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.charts.PieChart
+import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
 import com.github.mikephil.charting.data.PieEntry
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.github.mikephil.charting.utils.ColorTemplate
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlin.random.Random
 
 @Composable
-fun FirstLineChartDemo(modifier: Modifier = Modifier) {
+fun FirstLineChartDemo(
+    viewModel: ExpenseViewModel = viewModel(),
+    modifier: Modifier = Modifier
+) {
     // generate 12 points (month vs value)
-    val entries = remember {
-        (1..12).map { month ->
-            Entry(month.toFloat(), Random.nextFloat() * 100f)
-        }
+    val expenses by viewModel.allExpenses.observeAsState(initial = emptyList())
+    val today = LocalDate.now()  // e.g. 2025-07-04
+    val year  = today.year
+    val month = today.monthValue
+    val days  = today.dayOfMonth  // e.g. 4
+
+    // Convert epoch-ms → LocalDate for each expense, filter by month/year
+    val monthly = expenses.map{ Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() to it.amount }
+        .filter { (date, _) -> date.year == year && date.monthValue == month }
+
+    // Group amounts by day-of-month and sum
+    val dailySums: Map<Int, Float> = monthly
+        .groupBy   { (date, _) -> date.dayOfMonth }
+        .mapValues { (_, list) -> list.sumOf { it.second }.toFloat() }
+
+    val entries = (1..days).map { d ->
+        Entry(d.toFloat(), dailySums[d] ?: 0f)
     }
+    val labels = (1..days).map { String.format("%02d-%02d", month, it) }
+
+    val primaryInt   = MaterialTheme.colorScheme.primary.toArgb()
+    val tertiaryInt  = MaterialTheme.colorScheme.tertiary.toArgb()
 
     Box(modifier = modifier.fillMaxSize()) {
         AndroidView(
@@ -52,19 +81,24 @@ fun FirstLineChartDemo(modifier: Modifier = Modifier) {
                     // chart styling
                     description.isEnabled = false
                     axisRight.isEnabled = false
-                    xAxis.granularity = 1f
                     animateX(300)
                 }
             },
             update = { chart ->
-                val dataSet = LineDataSet(entries, "Monthly Data").apply {
-                    mode = LineDataSet.Mode.CUBIC_BEZIER
+                chart.xAxis.apply {
+                    position        = XAxis.XAxisPosition.BOTTOM
+                    granularity     = 1f
+                    labelCount      = labels.size
+                    valueFormatter  = IndexAxisValueFormatter(labels)           // :contentReference[oaicite:13]{index=13}
+                }
+
+                val dataSet = LineDataSet(entries, "지출 추이").apply {
                     setDrawCircles(true)
                     lineWidth = 2f
                     circleRadius = 4f
                     setDrawValues(false)
-                    colors = listOf(ColorTemplate.MATERIAL_COLORS[0])
-                    circleColors = listOf(ColorTemplate.MATERIAL_COLORS[1])
+                    color = primaryInt
+                    circleColors = listOf(tertiaryInt)
                 }
                 chart.data = LineData(dataSet)
                 chart.invalidate()
