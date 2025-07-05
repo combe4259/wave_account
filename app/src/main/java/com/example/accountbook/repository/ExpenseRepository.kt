@@ -1,21 +1,19 @@
 package com.example.accountbook.repository
 
-
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.map
 import com.example.accountbook.local.ExpenseDao
 import com.example.accountbook.model.Expense
+import com.example.accountbook.dto.ExpenseWithCategory
 
 class ExpenseRepository(private val expenseDao: ExpenseDao) {
 
+    // === 기존 메서드들 (그대로 유지) ===
+
     // 모든 지출 데이터
     val allExpenses: LiveData<List<Expense>> = expenseDao.getAllExpenses()
-//    fun getAllExpenses(): LiveData<List<Expense>> {
-//        return expenseDao.getAllExpenses()
-//    }
 
-    // 사진이 있는 지출만
-//    val expensesWithPhotos: LiveData<List<Expense>> = expenseDao.getExpensesWithPhotos()
+    // 사진이 있는 지출만 (유효성 검증 포함)
     fun getExpensesWithValidPhotos(): LiveData<List<Expense>> {
         return expenseDao.getExpensesWithPhotos().map { expenses ->
             expenses.filter { expense ->
@@ -52,13 +50,45 @@ class ExpenseRepository(private val expenseDao: ExpenseDao) {
         return expenseDao.getExpenseById(id)
     }
 
-//    // 카테고리별 지출 조회
-//    fun getExpensesByCategory(category: String): LiveData<List<Expense>> {
-//        return expenseDao.getExpensesByCategory(category)
-//    }
-//
-//    // 날짜 범위로 지출 조회
-//    fun getExpensesByDateRange(startDate: Long, endDate: Long): LiveData<List<Expense>> {
-//        return expenseDao.getExpensesByDateRange(startDate, endDate)
-//    }
+    // 지출 카테고리 변경
+    suspend fun updateExpenseCategory(expenseId: Long, categoryId: Long?): Boolean {
+        val expense = getExpenseById(expenseId) ?: return false
+        val updatedExpense = expense.copy(categoryId = categoryId)
+        updateExpense(updatedExpense)
+        return true
+    }
+
+    // 지출 사진 추가/수정
+    suspend fun updateExpensePhoto(expenseId: Long, photoUri: String?): Boolean {
+        val expense = getExpenseById(expenseId) ?: return false
+        val updatedExpense = expense.copy(photoUri = photoUri)
+        updateExpense(updatedExpense)
+        return true
+    }
+
+    // === ViewModel에서 필요로 하는 새로운 메서드들 추가 ===
+
+    // 카테고리 정보가 포함된 모든 지출 조회
+    // ViewModel의 allExpensesWithCategory에서 사용
+    fun getAllExpensesWithCategory(): LiveData<List<ExpenseWithCategory>> {
+        return expenseDao.getAllExpensesWithCategory()
+    }
+
+    // 사진이 있는 지출들 (카테고리 정보 포함)
+    // ViewModel의 expensesWithPhotosAndCategory에서 사용
+    fun getExpensesWithPhotosAndCategory(): LiveData<List<ExpenseWithCategory>> {
+        return expenseDao.getExpensesWithPhotosAndCategory()
+    }
+
+    // 특정 카테고리의 지출들 조회 (카테고리 정보 포함)
+    // ViewModel의 getExpensesByCategory에서 사용
+    fun getExpensesByCategory(categoryId: Long): LiveData<List<ExpenseWithCategory>> {
+        return expenseDao.getExpensesByCategory(categoryId)
+    }
+
+    // 특정 날짜 범위의 지출들 조회 (카테고리 정보 포함)
+    // ViewModel의 getExpensesByDateRange에서 사용
+    fun getExpensesByDateRange(startDate: Long, endDate: Long): LiveData<List<ExpenseWithCategory>> {
+        return expenseDao.getExpensesByDateRange(startDate, endDate)
+    }
 }

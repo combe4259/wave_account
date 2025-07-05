@@ -27,7 +27,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.example.accountbook.model.Expense
+import com.example.accountbook.dto.ExpenseWithCategory
 import com.example.accountbook.view.ExpenseViewModel
 import com.example.accountbook.view.ExpenseGalleryViewModel
 import com.example.accountbook.view.GalleryUiState
@@ -36,17 +36,16 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
-
- //갤러리 메인 화면
+//갤러리 메인 화면 - ExpenseGalleryViewModel 사용
 @Composable
 fun ExpenseGalleryScreen(
     viewModel: ExpenseViewModel,
-    onNavigateBack: (() -> Unit)? = null, // MainActivity에서는 하단 네비게이션을 사용하므로 선택적
+    onNavigateBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-
+    // ExpenseGalleryViewModel을 다시 사용
     val galleryViewModel: ExpenseGalleryViewModel = viewModel {
-        ExpenseGalleryViewModel(viewModel.repository)
+        ExpenseGalleryViewModel(viewModel.expenseRepository)
     }
 
     val uiState by galleryViewModel.uiState.observeAsState(initial = GalleryUiState())
@@ -62,7 +61,7 @@ fun ExpenseGalleryScreen(
         modifier = modifier
     )
 
-    // 상세보기 다이얼로그는 그대로 유지합니다
+    // 상세보기 다이얼로그
     if (uiState.showDetailDialog && uiState.selectedExpense != null) {
         ExpenseDetailDialog(
             expense = uiState.selectedExpense!!,
@@ -79,7 +78,7 @@ fun ExpenseGalleryScreen(
 @Composable
 private fun GalleryContent(
     uiState: GalleryUiState,
-    onImageClick: (Expense) -> Unit,
+    onImageClick: (ExpenseWithCategory) -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -87,7 +86,6 @@ private fun GalleryContent(
         modifier = modifier.fillMaxSize()
     ) {
         when {
-            // 로딩 중일 때 - 중앙에 로딩 인디케이터 표시
             uiState.isLoading -> {
                 Column(
                     modifier = Modifier.align(Alignment.Center),
@@ -103,23 +101,19 @@ private fun GalleryContent(
                 }
             }
 
-            // 이미지가 없을 때 - 친근한 안내 메시지 표시
             uiState.expensesWithImages.isEmpty() -> {
                 EmptyGalleryState(
                     modifier = Modifier.align(Alignment.Center)
                 )
             }
 
-            // 이미지가 있을 때 - 아름다운 격자 레이아웃으로 표시
             else -> {
                 Column {
-                    // 상단에 이미지 개수 정보를 표시합니다
                     GalleryHeader(
                         imageCount = uiState.expensesWithImages.size,
                         modifier = Modifier.padding(16.dp)
                     )
 
-                    // 메인 이미지 그리드
                     ImageGrid(
                         expenses = uiState.expensesWithImages,
                         onImageClick = onImageClick,
@@ -175,7 +169,6 @@ private fun GalleryHeader(
 
 /**
  * 이미지가 없을 때 표시되는 빈 상태 화면
- * 사용자에게 친근하고 도움이 되는 메시지를 제공
  */
 @Composable
 private fun EmptyGalleryState(
@@ -185,7 +178,6 @@ private fun EmptyGalleryState(
         modifier = modifier.padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 시각적으로 임팩트 있는 아이콘
         Icon(
             Icons.Default.PhotoLibrary,
             contentDescription = null,
@@ -195,7 +187,6 @@ private fun EmptyGalleryState(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 주요 메시지
         Text(
             text = "아직 사진이 없어요",
             style = MaterialTheme.typography.headlineSmall,
@@ -206,7 +197,6 @@ private fun EmptyGalleryState(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 도움말 메시지
         Text(
             text = "지출을 기록할 때 사진을 함께 업로드하면\n이곳에서 모아볼 수 있어요",
             style = MaterialTheme.typography.bodyMedium,
@@ -217,7 +207,6 @@ private fun EmptyGalleryState(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 행동 유도 카드
         Card(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
@@ -239,12 +228,12 @@ private fun EmptyGalleryState(
  */
 @Composable
 private fun ImageGrid(
-    expenses: List<Expense>,
-    onImageClick: (Expense) -> Unit,
+    expenses: List<ExpenseWithCategory>,
+    onImageClick: (ExpenseWithCategory) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Fixed(2), // 2열 격자
+        columns = GridCells.Fixed(2),
         modifier = modifier,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -252,7 +241,7 @@ private fun ImageGrid(
     ) {
         items(
             items = expenses,
-            key = { expense -> expense.id } // 성능 최적화를 위한 고유 키 설정
+            key = { expense -> expense.id }
         ) { expense ->
             GalleryImageItem(
                 expense = expense,
@@ -267,13 +256,13 @@ private fun ImageGrid(
  */
 @Composable
 private fun GalleryImageItem(
-    expense: Expense,
+    expense: ExpenseWithCategory,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier
-            .aspectRatio(1f) // 정사각형 비율 유지
+            .aspectRatio(1f)
             .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         shape = MaterialTheme.shapes.medium
@@ -283,7 +272,7 @@ private fun GalleryImageItem(
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(Uri.parse(expense.photoUri))
-                    .crossfade(300) // 부드러운 페이드인 효과
+                    .crossfade(300)
                     .build(),
                 contentDescription = "${expense.productName} 사진",
                 modifier = Modifier.fillMaxSize(),
@@ -342,7 +331,7 @@ private fun GalleryImageItem(
                             shape = MaterialTheme.shapes.extraSmall
                         ) {
                             Text(
-                                text = expense.category,
+                                text = expense.categoryName ?: "미분류",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -360,7 +349,7 @@ private fun GalleryImageItem(
  */
 @Composable
 private fun ExpenseDetailDialog(
-    expense: Expense,
+    expense: ExpenseWithCategory,
     onDismiss: () -> Unit
 ) {
     val dateFormat = SimpleDateFormat("yyyy년 MM월 dd일 (E)", Locale.KOREA)
@@ -432,7 +421,7 @@ private fun ExpenseDetailDialog(
 
                         DetailInfoRow(
                             label = "📂 카테고리",
-                            value = expense.category
+                            value = expense.categoryName ?: "미분류"
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))

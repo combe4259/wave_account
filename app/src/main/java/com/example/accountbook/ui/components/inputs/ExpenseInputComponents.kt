@@ -32,13 +32,12 @@ fun ProductNameInput(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-
     val focusManager = LocalFocusManager.current
     OutlinedTextField(
         value = value,
-        onValueChange = onValueChange,
+        onValueChange = onValueChange, //텍스트 필도 변경시 전달 -> value로 전달 -> 리렌더링
         label = { Text("상품명") },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         singleLine = true,
         placeholder = { Text("예: 점심식사, 지하철비") },
         keyboardOptions = KeyboardOptions(
@@ -142,7 +141,7 @@ fun SaveButton(
                 val expense = Expense(
                     productName = uiState.productName,
                     amount = uiState.amountAsDouble,
-                    category = uiState.selectedCategory,
+                    //category = uiState.selectedCategory,
                     date = uiState.selectedDate,
                     photoUri = uiState.selectedImageUri?.toString()
                 )
