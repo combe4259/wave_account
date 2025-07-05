@@ -383,7 +383,7 @@ fun PieChartByCategory(
                     setDrawValues(true)
                     isUsingSliceColorAsValueLineColor = true
                     valueLinePart1OffsetPercentage = 75f
-                    valueLinePart1Length = 0.6f
+                    valueLinePart1Length = 0.7f
                     valueLinePart2Length = 0.8f
                     valueLineColor = Color.Black.toArgb()
                     yValuePosition = PieDataSet.ValuePosition.OUTSIDE_SLICE
