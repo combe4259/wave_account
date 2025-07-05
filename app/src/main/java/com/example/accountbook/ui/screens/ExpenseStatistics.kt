@@ -62,32 +62,47 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.collections.lastOrNull
 import android.util.Log
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
 @Composable
 fun FirstLineChartDemo(
+    currentMonth: Calendar,
     viewModel: ExpenseViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
     // generate 12 points (month vs value)
-    //val expenses by viewModel.allExpenses.observeAsState(initial = emptyList())
     val expensesWithCategory by viewModel.allExpensesWithCategory.observeAsState(initial = emptyList())
-    val today = LocalDate.now()  // e.g. 2025-07-04
-    val year  = today.year
-    val month = today.monthValue
-    val days  = today.dayOfMonth  // e.g. 4
+    val year  = currentMonth.get(Calendar.YEAR)
+    val monthNumber = currentMonth.get(Calendar.MONTH) + 1
+    val daysInMonth  = currentMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
+    val today = LocalDate.now()
+    val daysToShow = if (
+        today.year == year && today.monthValue == monthNumber
+    ) {
+        today.dayOfMonth
+    } else {
+        daysInMonth
+    }
 
-    // Convert epoch-ms → LocalDate for each expense, filter by month/year
-    val monthly = expensesWithCategory.map{ Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() to it.amount }
-        .filter { (date, _) -> date.year == year && date.monthValue == month }
 
-    // Group amounts by day-of-month and sum
-    val dailySums: Map<Int, Float> = monthly
+    val dailySums: Map<Int, Float> = expensesWithCategory
+        .map { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() to it.amount }
+        .filter { (date, _) ->
+            date.year == year && date.monthValue == monthNumber
+        }
         .groupBy   { (date, _) -> date.dayOfMonth }
         .mapValues { (_, list) -> list.sumOf { it.second }.toFloat() }
 
-    val entries = (1..days).map { d ->
-        Entry(d.toFloat(), dailySums[d] ?: 0f)
+    // ➌ build zero-based entries so “1” → x=0, “2”→ x=1, …
+    val entries = (1..daysToShow).map { d ->
+        Entry((d - 1).toFloat(), dailySums[d] ?: 0f)
     }
-    val labels = (1..days).map { String.format("%02d-%02d", month, it) }
+
+    // ➍ labels remain “MM-dd”
+    val labels = (1..daysToShow).map {
+        String.format("%02d", it)
+    }
 
     val primary = MaterialTheme.colorScheme.primary
     val primaryInt   = primary.toArgb()
@@ -101,7 +116,6 @@ fun FirstLineChartDemo(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
-                    // chart styling
                     description.isEnabled = false
                     axisRight.isEnabled = false
                     animateX(300)
@@ -301,49 +315,32 @@ fun SecondLineChartDemo(
 
 @Composable
 fun PieChartByCategory(
+    currentMonth: Calendar,
     viewModel: ExpenseViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
 
     //val expenses by viewModel.allExpenses.observeAsState(emptyList())
     val expensesWithCategory by viewModel.allExpensesWithCategory.observeAsState(initial = emptyList())
-    val today    = LocalDate.now()
-    val year     = today.year
-    val month    = today.monthValue
+    val year     = currentMonth.get(Calendar.YEAR)
+    val monthNumber    = currentMonth.get(Calendar.MONTH) + 1
 
-    val sumsByCat: List<Pair<String, Float>> = expensesWithCategory
-        .map { exp ->
-            Instant.ofEpochMilli(exp.date)
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate() to exp
-        }
+    val sumsByCat = expensesWithCategory
+        .map { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() to it }
         .filter { (date, _) ->
-            val result = date.year == year && date.monthValue == month
-            Log.d("pieChart","날짜: ${date} -> $result")
-            result
+            date.year == year && date.monthValue == monthNumber
         }
-        .map { (_, exp) -> exp } // 날짜 정보 제거, expense만 남김
-        .groupBy { exp ->
-            exp.categoryName?.trim() ?: "미분류"
-        } // 카테고리별로 그룹핑
-        .mapValues { (_, expenses) ->
-            expenses.sumOf { it.amount }.toFloat()
-        } // 각 그룹의 금액 합계 계산
-        .map { (category, totalAmount) ->
-            Log.d("PieChartDebug", "카테고리: '$category', 총 금액: $totalAmount")
-            category to totalAmount
-        }
+        .map { it.second }   // drop date
+        .groupBy { it.categoryName?.trim().orEmpty().ifEmpty { "미분류" } }
+        .mapValues { (_, list) -> list.sumOf { it.amount }.toFloat() }
         .toList()
+        .sortedByDescending { it.second }
 
-
-    // 5) Build PieEntry list, only non-zero categories
-    val entries = remember(sumsByCat) {
-        Log.d("PieChartDebug", "최종 카테고리별 합계: $sumsByCat")
+    val entries = remember(currentMonth, sumsByCat) {
         sumsByCat.mapNotNull { (cat, sum) ->
             if (sum > 0f) PieEntry(sum, cat) else null
-        }.sortedByDescending { it.value }
+        }
     }
-
     // 6) Choose a color per category (you can customize these)
     val baseColors = listOf(
         MaterialTheme.colorScheme.primary,
@@ -412,11 +409,13 @@ fun PieChartByCategory(
 @Composable
 fun ExpenseStatisticsScreen(modifier: Modifier = Modifier) {
     var currentMonth by remember { mutableStateOf(Calendar.getInstance()) }
+    val scrollState = rememberScrollState()
     Column (
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(scrollState)
             .padding(16.dp),         // outer padding around the whole stack
-        verticalArrangement = Arrangement.spacedBy(12.dp) // space between charts
+        verticalArrangement = Arrangement.spacedBy(50.dp) // space between charts
     ) {
         MonthNavigationHeaderfotStatistics(
             currentMonth = currentMonth,
@@ -434,19 +433,22 @@ fun ExpenseStatisticsScreen(modifier: Modifier = Modifier) {
             }
         )
         FirstLineChartDemo(
+            currentMonth = currentMonth,
             modifier = Modifier
-                .weight(1f)             // share remaining height equally
                 .fillMaxWidth()
+                .height(170.dp)
         )
         PieChartByCategory(
+            currentMonth = currentMonth,
             modifier = Modifier
                 .height(230.dp)         // fixed height if you prefer
                 .fillMaxWidth()
         )
         SecondLineChartDemo(
             modifier = Modifier
-                .weight(1f)
+//                .weight(1f)
                 .fillMaxWidth()
+                .height(200.dp)
         )
     }
 }
