@@ -68,14 +68,15 @@ fun FirstLineChartDemo(
     modifier: Modifier = Modifier
 ) {
     // generate 12 points (month vs value)
-    val expenses by viewModel.allExpenses.observeAsState(initial = emptyList())
+    //val expenses by viewModel.allExpenses.observeAsState(initial = emptyList())
+    val expensesWithCategory by viewModel.allExpensesWithCategory.observeAsState(initial = emptyList())
     val today = LocalDate.now()  // e.g. 2025-07-04
     val year  = today.year
     val month = today.monthValue
     val days  = today.dayOfMonth  // e.g. 4
 
     // Convert epoch-ms → LocalDate for each expense, filter by month/year
-    val monthly = expenses.map{ Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() to it.amount }
+    val monthly = expensesWithCategory.map{ Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() to it.amount }
         .filter { (date, _) -> date.year == year && date.monthValue == month }
 
     // Group amounts by day-of-month and sum
@@ -137,7 +138,8 @@ fun SecondLineChartDemo(
     modifier: Modifier = Modifier
 ) {
     // 1) Observe all expenses
-    val expenses by viewModel.allExpenses.observeAsState(emptyList())
+    //val expenses by viewModel.allExpenses.observeAsState(emptyList())
+    val expensesWithCategory by viewModel.allExpensesWithCategory.observeAsState(initial = emptyList())
 
     // 2) Compute date info
     val today = LocalDate.now()
@@ -154,7 +156,7 @@ fun SecondLineChartDemo(
     // 3) Helper: build cumulative map for a given year/month
     fun cumulativeSums(year: Int, month: Int, daysInMonth: Int): List<Float> {
         // filter+sum per day
-        val byDay = expenses
+        val byDay = expensesWithCategory
             .map { exp ->
                 val ld = Instant.ofEpochMilli(exp.date)
                     .atZone(ZoneId.systemDefault())
@@ -303,12 +305,13 @@ fun PieChartByCategory(
     modifier: Modifier = Modifier
 ) {
 
-    val expenses by viewModel.allExpenses.observeAsState(emptyList())
+    //val expenses by viewModel.allExpenses.observeAsState(emptyList())
+    val expensesWithCategory by viewModel.allExpensesWithCategory.observeAsState(initial = emptyList())
     val today    = LocalDate.now()
     val year     = today.year
     val month    = today.monthValue
 
-    val sumsByCat: Map<String, Float> = expenses
+    val sumsByCat: List<Pair<String, Float>> = expensesWithCategory
         .map { exp ->
             Instant.ofEpochMilli(exp.date)
                 .atZone(ZoneId.systemDefault())
@@ -318,10 +321,9 @@ fun PieChartByCategory(
             date.year == year && date.monthValue == month
         }
         .map { (_, exp) ->
-            exp.category to exp.amount.toFloat()
+            (exp.categoryName ?: "미분류") to exp.amount.toFloat()
         }
-        .groupBy({ it.first }, { it.second })
-        .mapValues { (_, amounts) -> amounts.sum() }
+
 
     // 5) Build PieEntry list, only non-zero categories
     val entries = remember(sumsByCat) {
