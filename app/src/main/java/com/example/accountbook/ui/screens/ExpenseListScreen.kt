@@ -18,80 +18,79 @@ import com.example.accountbook.view.ExpenseViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
+//
+//@Composable
+//fun ExpenseListScreen(
+//    viewModel: ExpenseViewModel,
+//    modifier: Modifier = Modifier,
+//    onNavigateToAdd: () -> Unit
+//) {
+//    val expenses by viewModel.allExpenses.observeAsState(emptyList())
+//
+//    Column(modifier = modifier.padding(16.dp)) {
+//        // 총 지출 금액 표시
+//        if (expenses.isNotEmpty()) {
+//            val totalAmount = expenses.sumOf { it.amount }
+//            Card(
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .padding(bottom = 16.dp),
+//                colors = CardDefaults.cardColors(
+//                    containerColor = MaterialTheme.colorScheme.primaryContainer
+//                )
+//            ) {
+//                Column(
+//                    modifier = Modifier.padding(16.dp),
+//                    horizontalAlignment = Alignment.CenterHorizontally
+//                ) {
+//                    Text(
+//                        text = "총 지출",
+//                        style = MaterialTheme.typography.titleMedium
+//                    )
+//                    Text(
+//                        text = NumberFormat.getNumberInstance(Locale.KOREA).format(totalAmount) + "원",
+//                        style = MaterialTheme.typography.headlineMedium,
+//                        fontWeight = FontWeight.Bold,
+//                        color = MaterialTheme.colorScheme.primary
+//                    )
+//                }
+//            }
+//        }
+//
+//        // 지출 목록
+//        if (expenses.isEmpty()) {
+//            // 빈 상태
+//            Box(
+//                modifier = Modifier.fillMaxSize(),
+//                contentAlignment = Alignment.Center
+//            ) {
+//                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+//                    Text(
+//                        text = "아직 지출 내역이 없습니다",
+//                        style = MaterialTheme.typography.bodyLarge,
+//                        color = MaterialTheme.colorScheme.onSurfaceVariant
+//                    )
+//                    Spacer(modifier = Modifier.height(16.dp))
+//                    Button(onClick = onNavigateToAdd) {
+//                        Text("첫 지출 추가하기")
+//                    }
+//                }
+//            }
+//        } else {
+//            LazyColumn(
+//                verticalArrangement = Arrangement.spacedBy(8.dp)
+//            ) {
+//                items(expenses) { expense ->
+//                    ExpenseItem(
+//                        expense = expense,
+//                        onDelete = { viewModel.deleteExpense(expense) }
+//                    )
+//                }
+//            }
+//        }
+//    }
+//}
 
-@Composable
-fun ExpenseListScreen(
-    viewModel: ExpenseViewModel,
-    modifier: Modifier = Modifier,
-    onNavigateToAdd: () -> Unit
-) {
-    val expenses by viewModel.allExpenses.observeAsState(emptyList())
-
-    Column(modifier = modifier.padding(16.dp)) {
-        // 총 지출 금액 표시
-        if (expenses.isNotEmpty()) {
-            val totalAmount = expenses.sumOf { it.amount }
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "총 지출",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(
-                        text = NumberFormat.getNumberInstance(Locale.KOREA).format(totalAmount) + "원",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-        }
-
-        // 지출 목록
-        if (expenses.isEmpty()) {
-            // 빈 상태
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "아직 지출 내역이 없습니다",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = onNavigateToAdd) {
-                        Text("첫 지출 추가하기")
-                    }
-                }
-            }
-        } else {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(expenses) { expense ->
-                    ExpenseItem(
-                        expense = expense,
-                        onDelete = { viewModel.deleteExpense(expense) }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpenseItem(
     expense: Expense,

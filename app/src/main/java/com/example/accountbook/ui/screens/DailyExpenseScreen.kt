@@ -20,6 +20,14 @@ import com.example.accountbook.view.ExpenseViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
+import coil.compose.AsyncImage
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +39,11 @@ fun DailyExpenseScreen(
     onNavigateToAdd: (Long) -> Unit
 ) {
     val allExpenses by viewModel.allExpenses.observeAsState(emptyList())
+
+    //팝업창 관리
+    var selectedExpenseForDetail by remember { mutableStateOf<Expense?>(null) }
+
+
 
     // 선택된 날짜의 지출만 필터링
     val dailyExpenses = remember(allExpenses, selectedDate) {
@@ -85,12 +98,27 @@ fun DailyExpenseScreen(
                     expenses = dailyExpenses,
                     onDeleteExpense = { expense ->
                         viewModel.deleteExpense(expense)
+                    },
+                    onExpenseClick = { expense ->
+                        selectedExpenseForDetail = expense
                     }
                 )
             }
         }
+
+        selectedExpenseForDetail?.let { expense ->
+            ExpenseDetailDialog(
+                expense = expense,
+                onDismiss = { selectedExpenseForDetail = null },
+                onDelete = {
+                    viewModel.deleteExpense(expense)
+                    selectedExpenseForDetail = null
+                }
+            )
+        }
     }
 }
+
 
 @Composable
 fun DailySummaryCard(
@@ -167,144 +195,249 @@ fun EmptyDayState(
     }
 }
 
+
 @Composable
 fun DailyExpenseList(
     expenses: List<Expense>,
-    onDeleteExpense: (Expense) -> Unit
+    onDeleteExpense: (Expense) -> Unit,
+    onExpenseClick: (Expense) -> Unit
 ) {
-    // 카테고리별로 그룹화
-    val groupedExpenses = expenses.groupBy { it.category }
+    //시간 정렬
+    //expense가 바뀔 때만 블록 안의 코드 실행
+    val sortedExpenses = remember(expenses) {
+        expenses.sortedByDescending { it.date }
+    }
 
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        groupedExpenses.forEach { (category, categoryExpenses) ->
-            item {
-                CategoryHeader(
-                    category = category,
-                    totalAmount = categoryExpenses.sumOf { it.amount },
-                    count = categoryExpenses.size
-                )
-            }
-
-            items(categoryExpenses) { expense ->
-                DailyExpenseItem(
-                    expense = expense,
-                    onDelete = { onDeleteExpense(expense) }
-                )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-            }
+        items(sortedExpenses) { expense ->
+            DailyExpenseItem(
+                expense = expense,
+                onDelete = { onDeleteExpense(expense) },
+                onClick = { onExpenseClick(expense) }
+            )
         }
     }
 }
+//    @Composable
+//    fun CategoryHeader(
+//        category: String,
+//        totalAmount: Double,
+//        count: Int
+//    ) {
+//        Row(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .padding(vertical = 8.dp),
+//            horizontalArrangement = Arrangement.SpaceBetween,
+//            verticalAlignment = Alignment.CenterVertically
+//        ) {
+//            Text(
+//                text = "$category ($count)개",
+//                style = MaterialTheme.typography.titleSmall,
+//                fontWeight = FontWeight.Medium,
+//                color = MaterialTheme.colorScheme.primary
+//            )
+//
+//            Text(
+//                text = NumberFormat.getNumberInstance(Locale.KOREA).format(totalAmount) + "원",
+//                style = MaterialTheme.typography.titleSmall,
+//                fontWeight = FontWeight.Medium,
+//                color = MaterialTheme.colorScheme.primary
+//            )
+//        }
+//    }
 
-@Composable
-fun CategoryHeader(
-    category: String,
-    totalAmount: Double,
-    count: Int
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    @Composable
+    fun DailyExpenseItem(
+        expense: Expense,
+        onDelete: () -> Unit,
+        onClick: () -> Unit
     ) {
-        Text(
-            text = "$category ($count)개",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.primary
-        )
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.KOREA)
 
-        Text(
-            text = NumberFormat.getNumberInstance(Locale.KOREA).format(totalAmount) + "원",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.primary
-        )
-    }
-}
-
-@Composable
-fun DailyExpenseItem(
-    expense: Expense,
-    onDelete: () -> Unit
-) {
-    val timeFormat = SimpleDateFormat("HH:mm", Locale.KOREA)
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            onClick = onClick
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = expense.productName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = timeFormat.format(Date(expense.date)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = NumberFormat.getNumberInstance(Locale.KOREA).format(expense.amount) + "원",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(32.dp)
+                Column(
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "삭제",
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(18.dp)
+                    Text(
+                        text = expense.productName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = timeFormat.format(Date(expense.date)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = NumberFormat.getNumberInstance(Locale.KOREA)
+                            .format(expense.amount) + "원",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "삭제",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }
     }
-}
 
-// 유틸리티 함수
-fun filterExpensesByDate(expenses: List<Expense>, targetDate: Long): List<Expense> {
-    val targetCalendar = Calendar.getInstance().apply { timeInMillis = targetDate }
-    val targetYear = targetCalendar.get(Calendar.YEAR)
-    val targetMonth = targetCalendar.get(Calendar.MONTH)
-    val targetDay = targetCalendar.get(Calendar.DAY_OF_MONTH)
 
-    return expenses.filter { expense ->
-        val expenseCalendar = Calendar.getInstance().apply { timeInMillis = expense.date }
-        expenseCalendar.get(Calendar.YEAR) == targetYear &&
-                expenseCalendar.get(Calendar.MONTH) == targetMonth &&
-                expenseCalendar.get(Calendar.DAY_OF_MONTH) == targetDay
-    }.sortedByDescending { it.date } // 최신 순으로 정렬
-}
+    @Composable
+    fun ExpenseDetailDialog(
+        expense: Expense,
+        onDismiss: () -> Unit,
+        onDelete: () -> Unit
+    ) {
+        val dateFormat = SimpleDateFormat("yyyy년 MM월 dd일 HH:mm", Locale.KOREA)
+
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = {
+                Text(
+                    text = "지출 상세 정보",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // 상품명
+                    DetailRow(
+                        label = "상품명",
+                        value = expense.productName
+                    )
+
+                    // 카테고리
+                    DetailRow(
+                        label = "카테고리",
+                        value = expense.category
+                    )
+
+                    // 금액
+                    DetailRow(
+                        label = "금액",
+                        value = NumberFormat.getNumberInstance(Locale.KOREA)
+                            .format(expense.amount) + "원"
+                    )
+
+                    // 날짜
+                    DetailRow(
+                        label = "날짜",
+                        value = dateFormat.format(Date(expense.date))
+                    )
+
+
+                    // 이미지 (있는 경우만)
+                    expense.photoUri?.let { imagePath ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "첨부 이미지",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        // 이미지 표시
+                        AsyncImage(
+                            model = imagePath,
+                            contentDescription = "지출 이미지",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = ContentScale.Crop,
+                            error = painterResource(id = android.R.drawable.ic_menu_report_image), // 기본 에러 아이콘 사용
+                            placeholder = painterResource(id = android.R.drawable.ic_menu_gallery) // 기본 갤러리 아이콘 사용
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = onDismiss) {
+                    Text("확인")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = onDelete,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("삭제")
+                }
+            }
+        )
+    }
+
+    @Composable
+    fun DetailRow(
+        label: String,
+        value: String
+    ) {
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+
+
+    // 유틸리티 함수
+    fun filterExpensesByDate(expenses: List<Expense>, targetDate: Long): List<Expense> {
+        val targetCalendar = Calendar.getInstance().apply { timeInMillis = targetDate }
+        val targetYear = targetCalendar.get(Calendar.YEAR)
+        val targetMonth = targetCalendar.get(Calendar.MONTH)
+        val targetDay = targetCalendar.get(Calendar.DAY_OF_MONTH)
+
+        return expenses.filter { expense ->
+            val expenseCalendar = Calendar.getInstance().apply { timeInMillis = expense.date }
+            expenseCalendar.get(Calendar.YEAR) == targetYear &&
+                    expenseCalendar.get(Calendar.MONTH) == targetMonth &&
+                    expenseCalendar.get(Calendar.DAY_OF_MONTH) == targetDay
+        }.sortedByDescending { it.date }
+    }
+
