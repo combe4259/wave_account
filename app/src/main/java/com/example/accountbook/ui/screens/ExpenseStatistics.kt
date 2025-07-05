@@ -61,7 +61,7 @@ import com.github.mikephil.charting.formatter.PercentFormatter
 import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.collections.lastOrNull
-
+import android.util.Log
 @Composable
 fun FirstLineChartDemo(
     viewModel: ExpenseViewModel = viewModel(),
@@ -318,15 +318,27 @@ fun PieChartByCategory(
                 .toLocalDate() to exp
         }
         .filter { (date, _) ->
-            date.year == year && date.monthValue == month
+            val result = date.year == year && date.monthValue == month
+            Log.d("pieChart","날짜: ${date} -> $result")
+            result
         }
-        .map { (_, exp) ->
-            (exp.categoryName ?: "미분류") to exp.amount.toFloat()
+        .map { (_, exp) -> exp } // 날짜 정보 제거, expense만 남김
+        .groupBy { exp ->
+            exp.categoryName?.trim() ?: "미분류"
+        } // 카테고리별로 그룹핑
+        .mapValues { (_, expenses) ->
+            expenses.sumOf { it.amount }.toFloat()
+        } // 각 그룹의 금액 합계 계산
+        .map { (category, totalAmount) ->
+            Log.d("PieChartDebug", "카테고리: '$category', 총 금액: $totalAmount")
+            category to totalAmount
         }
+        .toList()
 
 
     // 5) Build PieEntry list, only non-zero categories
     val entries = remember(sumsByCat) {
+        Log.d("PieChartDebug", "최종 카테고리별 합계: $sumsByCat")
         sumsByCat.mapNotNull { (cat, sum) ->
             if (sum > 0f) PieEntry(sum, cat) else null
         }.sortedByDescending { it.value }
