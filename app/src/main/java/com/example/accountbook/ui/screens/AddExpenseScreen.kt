@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import com.example.accountbook.ui.state.AddExpenseUiState
@@ -44,6 +45,8 @@ fun AddExpenseScreen(
     onNavigateBack: () -> Unit,
     initialDate: Long? = null
 ) {
+    val context = LocalContext.current
+
     // 상태 관리
     var uiState by remember {
         mutableStateOf(
@@ -52,7 +55,6 @@ fun AddExpenseScreen(
             )
         )
     }
-
     // 이미지 선택을 위한 Launcher
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -61,11 +63,11 @@ fun AddExpenseScreen(
             uiState = uiState.copy(selectedImageUri = uri)
         }
     }
+    //val permissionLauncher = rememberLauncherForActivityResult(...)
+    //val cameraLauncher = rememberLauncherForActivityResult(...)
 
     // 카테고리 데이터 가져오기
     val categories by viewModel.allCategories.observeAsState(emptyList())
-
-
 
     Scaffold(
         topBar = {
