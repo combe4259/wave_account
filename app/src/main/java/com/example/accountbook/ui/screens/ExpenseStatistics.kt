@@ -21,10 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-<<<<<<< HEAD
-=======
 import androidx.compose.runtime.mutableStateOf
->>>>>>> 46c12f5e9cee451a7e8f9560a77fb789ad14b777
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
