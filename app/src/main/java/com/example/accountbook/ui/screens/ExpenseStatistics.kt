@@ -1,5 +1,8 @@
 package com.example.accountbook.ui.screens
 
+import android.content.Context
+import android.graphics.Typeface
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.view.ViewGroup
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +34,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.graphics.alpha
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.accountbook.ui.theme.MainColor
 import com.example.accountbook.view.ExpenseViewModel
@@ -52,8 +56,11 @@ import java.time.ZoneId
 import java.util.Calendar
 import kotlin.random.Random
 import com.example.accountbook.ui.screens.MonthNavigationHeader
+import com.github.mikephil.charting.components.LimitLine
+import com.github.mikephil.charting.formatter.PercentFormatter
 import java.text.SimpleDateFormat
 import java.util.Locale
+import kotlin.collections.lastOrNull
 
 @Composable
 fun FirstLineChartDemo(
@@ -81,7 +88,8 @@ fun FirstLineChartDemo(
     }
     val labels = (1..days).map { String.format("%02d-%02d", month, it) }
 
-    val primaryInt   = MaterialTheme.colorScheme.primary.toArgb()
+    val primary = MaterialTheme.colorScheme.primary
+    val primaryInt   = primary.toArgb()
     val tertiaryInt  = MaterialTheme.colorScheme.tertiary.toArgb()
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -112,31 +120,90 @@ fun FirstLineChartDemo(
                     lineWidth = 2f
                     circleRadius = 4f
                     setDrawValues(false)
-                    color = primaryInt
-                    circleColors = listOf(tertiaryInt)
+                    color = primary.copy(alpha=0.7f).toArgb()
+                    circleColors = listOf(primaryInt)
                 }
                 chart.data = LineData(dataSet)
+                chart.legend.isEnabled = false
                 chart.invalidate()
             }
         )
     }
 }
 
-/**
- * 2) A second LineChart with two data-sets for comparison.
- */
 @Composable
-fun SecondLineChartDemo(modifier: Modifier = Modifier) {
-    // same x-axis, but two random series
-    val entries = remember {
-        (1..12).map { Entry(it.toFloat(), Random.nextFloat() * 80f + 20f) }
+fun SecondLineChartDemo(
+    viewModel: ExpenseViewModel = viewModel(),
+    modifier: Modifier = Modifier
+) {
+    // 1) Observe all expenses
+    val expenses by viewModel.allExpenses.observeAsState(emptyList())
+
+    // 2) Compute date info
+    val today = LocalDate.now()
+    val thisYear  = today.year
+    val thisMonth = today.monthValue
+    val todayDay  = today.dayOfMonth
+
+    val prevMonthDate = today.minusMonths(1)
+    val prevYear  = prevMonthDate.year
+    val prevMonth = prevMonthDate.monthValue
+    // How many days in previous month:
+    val prevMonthLength = prevMonthDate.lengthOfMonth()
+
+    // 3) Helper: build cumulative map for a given year/month
+    fun cumulativeSums(year: Int, month: Int, daysInMonth: Int): List<Float> {
+        // filter+sum per day
+        val byDay = expenses
+            .map { exp ->
+                val ld = Instant.ofEpochMilli(exp.date)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+                ld to exp.amount
+            }
+            .filter { (ld, _) -> ld.year == year && ld.monthValue == month }
+            .groupBy { (ld, _) -> ld.dayOfMonth }
+            .mapValues { (_, list) -> list.sumOf { it.second }.toFloat() }
+
+        // fill
+        val daily = (1..daysInMonth).map { d -> byDay[d] ?: 0f }
+        // cumulative
+        return daily.runningFold(0f) { acc, v -> acc + v }.drop(1)
     }
-    val startColor = MaterialTheme.colorScheme.secondary.toArgb()
-    val endColor   = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f).toArgb()
-    val gradientDrawable = GradientDrawable(
-        GradientDrawable.Orientation.TOP_BOTTOM,
-        intArrayOf(startColor, endColor)
-    )
+
+    val prevCum = cumulativeSums(prevYear, prevMonth, prevMonthLength)
+//        .let { listOfFloats ->                              // name the List<Float>
+//            if (prevMonthLength < 31) {
+//                listOfFloats + List(31 - prevMonthLength) {     // inner lambda’s 'index'
+//                    // refer to the OUTER list via listOfFloats
+//                    listOfFloats.lastOrNull() ?: 0f
+//                }
+//            } else {
+//                listOfFloats
+//            }
+//        }
+
+    val currCum = cumulativeSums(thisYear, thisMonth, todayDay)
+//        .let { listOfFloats ->
+//            listOfFloats + List(31 - todayDay) {
+//                listOfFloats.lastOrNull() ?: 0f
+//            }
+//        }
+
+
+    // 4) Build Entries for days 1..31
+    val prevEntries = prevCum.mapIndexed { idx, sum -> Entry((idx + 1).toFloat(), sum) }
+    val currEntries = currCum.mapIndexed { idx, sum -> Entry((idx + 1).toFloat(), sum) }
+
+    // 5) Prepare labels “07-01”…“07-31”
+    val labels = List(31) { i ->
+        String.format("%02d-%02d", thisMonth, i + 1)
+    }
+    val primary = MaterialTheme.colorScheme.primary
+    val tertiary = MaterialTheme.colorScheme.tertiary
+    val primaryInt   = primary.toArgb()
+    val tertiaryInt  = tertiary.toArgb()
+    val red = Color(0xFFFF0000)
 
     Box(modifier = modifier.fillMaxSize()) {
         AndroidView(
@@ -148,21 +215,82 @@ fun SecondLineChartDemo(modifier: Modifier = Modifier) {
                     )
                     description.isEnabled = false
                     axisRight.isEnabled = false
-                    xAxis.granularity = 1f
-                    animateX(300)
+                    xAxis.isEnabled = false
+                    legend.isEnabled = false
+
+                    axisLeft.apply {
+                        axisMinimum = 0f
+                        axisMaximum = 1_100_000f
+                        spaceTop     = 15f
+                    }
+
+                    // 5a) horizontal limit line at 1,000,000
+                    axisLeft.removeAllLimitLines()
+                    axisLeft.addLimitLine(
+                        LimitLine(1_000_000f, "월 최대")
+                            .apply {
+                                lineColor = red.copy(alpha=0.6f).toArgb()
+                                lineWidth = 2f
+                                textColor = red.toArgb()
+                                textSize = 12f
+                            }
+                    )
+                    animateX(400)
                 }
             },
             update = { chart ->
-                val setA = LineDataSet(entries, "Series A").apply {
-                    mode = LineDataSet.Mode.CUBIC_BEZIER
-                    color = ColorTemplate.COLORFUL_COLORS[0]
-                    setColor(convertToArgb(MainColor))
-                    setDrawCircles(false)
-                    lineWidth = 2f
-                    setDrawFilled(true)
-                    fillDrawable = gradientDrawable
+                // 5b) X-axis config
+                chart.xAxis.apply {
+                    position       = XAxis.XAxisPosition.BOTTOM
+                    granularity    = 1f
+                    labelCount     = 31
+                    valueFormatter = IndexAxisValueFormatter(labels)
                 }
-                chart.data = LineData(setA)
+
+                // 5c) Build two data-sets with gradient fill
+
+                // Gradient generator
+                fun makeGradientPrevious(ctx: Context, base: Color): Drawable {
+                    val startColor = base.copy(alpha=0.1f).toArgb()
+                    val endColor = base.copy(alpha=0.5f).toArgb()
+                    return GradientDrawable(
+                        GradientDrawable.Orientation.BOTTOM_TOP,
+                        intArrayOf(startColor, endColor)
+                    )
+                }
+                fun makeGradientCurrent(ctx: Context, base: Color): Drawable {
+                    val startColor = base.copy(alpha=0.8f).toArgb()
+                    val endColor = base.copy(alpha=0.5f).toArgb()
+                    return GradientDrawable(
+                        GradientDrawable.Orientation.TOP_BOTTOM,
+                        intArrayOf(startColor, endColor)
+                    )
+                }
+
+                val setPrev = LineDataSet(prevEntries, "이전 달 누적").apply {
+                    mode            = LineDataSet.Mode.CUBIC_BEZIER
+                    setDrawCircles(false)
+                    circleRadius    = 3f
+                    lineWidth       = 2f
+                    setDrawValues(false)
+                    color           = tertiary.copy(alpha=0.4f).toArgb()
+                    circleColors    = listOf(tertiaryInt)
+                    setDrawFilled(true)
+                    fillDrawable    = makeGradientPrevious(chart.context, tertiary)
+                }
+                val setCurr = LineDataSet(currEntries, "이번 달 누적").apply {
+                    mode            = LineDataSet.Mode.CUBIC_BEZIER
+                    setDrawCircles(false)
+                    circleRadius    = 3f
+                    lineWidth       = 2f
+                    setDrawValues(false)
+                    color           = primaryInt
+                    circleColors    = listOf(primaryInt)
+//                    setDrawFilled(true)
+//                    fillDrawable    = makeGradientCurrent(chart.context, primary)
+                }
+
+                chart.data = LineData(setPrev, setCurr)
                 chart.invalidate()
             }
         )
@@ -170,50 +298,102 @@ fun SecondLineChartDemo(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun PieChartDemo(
+fun PieChartByCategory(
+    viewModel: ExpenseViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
-    val entries = remember {
-        List(5) { index ->
-            PieEntry((10..100).random().toFloat(), "Item ${index + 1}")
+
+    val expenses by viewModel.allExpenses.observeAsState(emptyList())
+    val today    = LocalDate.now()
+    val year     = today.year
+    val month    = today.monthValue
+
+    val sumsByCat: Map<String, Float> = expenses
+        .map { exp ->
+            Instant.ofEpochMilli(exp.date)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate() to exp
         }
+        .filter { (date, _) ->
+            date.year == year && date.monthValue == month
+        }
+        .map { (_, exp) ->
+            exp.category to exp.amount.toFloat()
+        }
+        .groupBy({ it.first }, { it.second })
+        .mapValues { (_, amounts) -> amounts.sum() }
+
+    // 5) Build PieEntry list, only non-zero categories
+    val entries = remember(sumsByCat) {
+        sumsByCat.mapNotNull { (cat, sum) ->
+            if (sum > 0f) PieEntry(sum, cat) else null
+        }.sortedByDescending { it.value }
     }
+
+    // 6) Choose a color per category (you can customize these)
+    val baseColors = listOf(
+        MaterialTheme.colorScheme.primary,
+        MaterialTheme.colorScheme.tertiary,
+        Color(0xFF2ed573),
+        Color(0xFFEDCE5C),
+        Color(0xFFFF9800),
+        Color(0xFFff6348)
+    )
+
+    val sliceColors = entries.mapIndexed { idx, _ ->
+        baseColors.getOrNull(idx)?.copy(alpha = 0.8f)?.toArgb()
+            ?: ColorTemplate.MATERIAL_COLORS[idx % ColorTemplate.MATERIAL_COLORS.size]
+    }
+
 
     Box(modifier = modifier.fillMaxSize()) {
         AndroidView(
             modifier = Modifier.fillMaxSize(),
-            factory = { context ->
-                PieChart(context).apply {
+            factory = { ctx ->
+                PieChart(ctx).apply {
                     layoutParams = ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
                     // Show percentages
                     setUsePercentValues(true)
-                    // No description text
                     description.isEnabled = false
-                    // No legend
                     legend.isEnabled = false
-                    // Label styling
-                    setEntryLabelColor(convertToArgb(MainColor))
+//                    setDrawEntryLabels(false)
+                    isDrawHoleEnabled = false
+                    setTransparentCircleAlpha(0)
+//                    setEntryLabelTypeface(Typeface.DEFAULT_BOLD)
                     setEntryLabelTextSize(12f)
-                    // Animate Y-axis
-                    animateY(800, Easing.EaseInOutQuad)
+                    setEntryLabelColor(Color.Black.toArgb())
+                    animateY(500, Easing.EaseInOutQuad)
                 }
             },
             update = { chart ->
+                // 7) Build DataSet with category-specific colors
                 val dataSet = PieDataSet(entries, "").apply {
-                    // Use built-in pastel/material colors
-                    colors = ColorTemplate.MATERIAL_COLORS.toList()
-                    valueTextSize = 14f
-                    setDrawValues(false)
+                    colors = sliceColors
+                    valueFormatter = PercentFormatter(chart)
+                    valueTextSize = 12f
+                    valueTextColor = Color.Black.toArgb()
+                    valueTypeface = Typeface.DEFAULT_BOLD
+                    sliceSpace = 2f
+
+                    setDrawValues(true)
+                    isUsingSliceColorAsValueLineColor = true
+                    valueLinePart1OffsetPercentage = 75f
+                    valueLinePart1Length = 0.6f
+                    valueLinePart2Length = 0.8f
+                    valueLineColor = Color.Black.toArgb()
+                    yValuePosition = PieDataSet.ValuePosition.OUTSIDE_SLICE
+                    xValuePosition = PieDataSet.ValuePosition.OUTSIDE_SLICE
                 }
                 chart.data = PieData(dataSet)
-                chart.invalidate() // Refresh the chart
+                chart.invalidate()
             }
         )
     }
 }
+
 
 @Composable
 fun ExpenseStatisticsScreen(modifier: Modifier = Modifier) {
@@ -244,26 +424,18 @@ fun ExpenseStatisticsScreen(modifier: Modifier = Modifier) {
                 .weight(1f)             // share remaining height equally
                 .fillMaxWidth()
         )
+        PieChartByCategory(
+            modifier = Modifier
+                .height(230.dp)         // fixed height if you prefer
+                .fillMaxWidth()
+        )
         SecondLineChartDemo(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
         )
-        PieChartDemo(
-            modifier = Modifier
-                .height(200.dp)         // fixed height if you prefer
-                .fillMaxWidth()
-        )
-
-
     }
 }
-
-fun convertToArgb(color: Color): Int = color.toArgb()
-
-
-
-
 
 @Composable
 fun MonthNavigationHeaderfotStatistics(
