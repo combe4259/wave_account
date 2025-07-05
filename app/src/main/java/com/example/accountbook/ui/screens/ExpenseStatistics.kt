@@ -5,21 +5,34 @@ import android.view.ViewGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.accountbook.ui.theme.MainColor
+import com.example.accountbook.view.ExpenseViewModel
 import com.github.mikephil.charting.animation.Easing
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.charts.PieChart
@@ -30,7 +43,11 @@ import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
 import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.utils.ColorTemplate
+import java.util.Calendar
 import kotlin.random.Random
+import com.example.accountbook.ui.screens.MonthNavigationHeader
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @Composable
 fun FirstLineChartDemo(modifier: Modifier = Modifier) {
@@ -54,6 +71,7 @@ fun FirstLineChartDemo(modifier: Modifier = Modifier) {
                     axisRight.isEnabled = false
                     xAxis.granularity = 1f
                     animateX(300)
+
                 }
             },
             update = { chart ->
@@ -168,12 +186,28 @@ fun PieChartDemo(
 
 @Composable
 fun ExpenseStatisticsScreen(modifier: Modifier = Modifier) {
+    var currentMonth by remember { mutableStateOf(Calendar.getInstance()) }
     Column (
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp),         // outer padding around the whole stack
         verticalArrangement = Arrangement.spacedBy(12.dp) // space between charts
     ) {
+        MonthNavigationHeaderfotStatistics(
+            currentMonth = currentMonth,
+            onPreviousMonth = {
+                currentMonth = Calendar.getInstance().apply {
+                    time = currentMonth.time
+                    add(Calendar.MONTH, -1)
+                }
+            },
+            onNextMonth = {
+                currentMonth = Calendar.getInstance().apply {
+                    time = currentMonth.time
+                    add(Calendar.MONTH, 1)
+                }
+            }
+        )
         FirstLineChartDemo(
             modifier = Modifier
                 .weight(1f)             // share remaining height equally
@@ -189,9 +223,42 @@ fun ExpenseStatisticsScreen(modifier: Modifier = Modifier) {
                 .height(200.dp)         // fixed height if you prefer
                 .fillMaxWidth()
         )
+
+
     }
 }
 
 fun convertToArgb(color: Color): Int = color.toArgb()
 
 
+
+
+
+@Composable
+fun MonthNavigationHeaderfotStatistics(
+    currentMonth: Calendar,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit
+) {
+    val monthFormat = SimpleDateFormat("yyyy년 MM월", Locale.KOREA)
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onPreviousMonth) {
+            Icon(Icons.Default.KeyboardArrowLeft, contentDescription = "이전 달")
+        }
+
+        Text(
+            text = monthFormat.format(currentMonth.time),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+
+        IconButton(onClick = onNextMonth) {
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "다음 달")
+        }
+    }
+}

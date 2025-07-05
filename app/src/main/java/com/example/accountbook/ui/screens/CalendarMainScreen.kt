@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.*
@@ -24,12 +25,9 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
+//달력 메인 구현
 @Composable
-fun CalendarMainScreen(
-    viewModel: ExpenseViewModel,
-    modifier: Modifier = Modifier,
-    onDateSelected: (Long) -> Unit
-) {
+fun CalendarMainScreen(viewModel: ExpenseViewModel, modifier: Modifier = Modifier, onDateSelected: (Long) -> Unit) {
     val expenses by viewModel.allExpenses.observeAsState(emptyList())
     var currentMonth by remember { mutableStateOf(Calendar.getInstance()) }
 
@@ -101,7 +99,7 @@ fun MonthNavigationHeader(
         )
 
         IconButton(onClick = onNextMonth) {
-            Icon(Icons.Default.KeyboardArrowRight, contentDescription = "다음 달")
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "다음 달")
         }
     }
 }
