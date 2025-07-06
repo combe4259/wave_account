@@ -62,6 +62,14 @@ fun AddExpenseScreen(
     onNavigateBack: () -> Unit,
     initialDate: Long? = null
 ) {
+
+    LaunchedEffect(initialDate) {
+        println("AddExpenseScreen - initialDate: ${initialDate}")
+        if (initialDate != null) {
+            println("Selected date: ${SimpleDateFormat("yyyy-MM-dd", Locale.KOREA).format(Date(initialDate))}")
+        }
+    }
+
     val context = LocalContext.current
 
     // 상태 관리
