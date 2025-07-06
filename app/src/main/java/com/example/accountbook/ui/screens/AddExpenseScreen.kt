@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import com.example.accountbook.ui.components.AddCategoryDialog
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,6 +74,23 @@ fun AddExpenseScreen(
     }
     //카테고리 다이얼로그
     var showAddCategoryDialog by remember { mutableStateOf(false) }
+    if (showAddCategoryDialog) {
+        AddCategoryDialog(
+            onDismiss = { showAddCategoryDialog = false },
+            onConfirm = { name, iconName, colorHex ->
+                // 새 카테고리 객체 생성
+                val newCategory = Category(
+                    name = name,
+                    iconName = iconName,
+                    colorHex = colorHex
+                )
+                // 카테고리 추가
+                viewModel.insertCategory(newCategory)
+                // 다이얼로그 닫기
+                showAddCategoryDialog = false
+            }
+        )
+    }
 
 
     //임시 파일 생성
@@ -133,6 +151,12 @@ fun AddExpenseScreen(
             uiState = uiState.copy(showPermissionDialog = true)
         }
     }
+    if (uiState.showPermissionDialog) {
+        PermissionDialog(
+            onDismiss = { uiState = uiState.copy(showPermissionDialog = false) }
+        )
+    }
+
 
 //카메라 실행
         fun handleCameraClick() {
@@ -516,3 +540,18 @@ private fun ImageOptionsDialog(
     )
 }
 
+@Composable
+private fun PermissionDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("카메라 권한 필요") },
+        text = {
+            Text("사진을 촬영하려면 카메라 권한이 필요합니다. 설정에서 권한을 허용해주세요.")
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("확인")
+            }
+        }
+    )
+}

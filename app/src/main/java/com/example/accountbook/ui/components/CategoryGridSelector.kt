@@ -56,9 +56,7 @@ fun CategoryGridSelector(
 }
 
 /**
- * 실제 카테고리 그리드를 그리는 컴포넌트
- * LazyVerticalGrid 대신 일반 Column과 Row 조합을 사용해서
- * LazyColumn 안에서도 안전하게 사용할 수 있도록 만들었습니다.
+ * 실제 카테고리 그리드
  */
 @Composable
 fun CategoryGrid(
@@ -135,7 +133,6 @@ fun CategoryGrid(
 
 /**
  * 카테고리 아이템의 데이터 타입을 정의하는 sealed class
- * 이렇게 하면 각각 다른 타입의 아이템들을 안전하게 처리할 수 있습니다.
  */
 sealed class CategoryItemData {
     data class None(val isSelected: Boolean) : CategoryItemData()
@@ -175,9 +172,9 @@ fun CategoryGridItem(
 
     // 선택 상태는 카테고리 색상으로 미묘한 테두리 표현
     val borderColor = if (isSelected) {
-        categoryColor.copy(alpha = 0.6f)
+        MaterialTheme.colorScheme.outline  // 선택시도 회색 사용
     } else {
-        MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+        MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)  // 미선택시: 연한 회색
     }
 
     Surface(
@@ -310,15 +307,9 @@ fun AddNewCategoryItem(
 }
 
 /**
- * 아이콘 이름을 이모지로 변환하는 유틸리티 함수
- *
- * 실제 프로젝트에서는 벡터 아이콘이나 이미지 리소스를 사용할 수 있지만,
- * 간단한 구현을 위해 이모지를 사용합니다.
- *
- * 각 카테고리의 성격을 잘 나타내는 이모지를 선택했으며,
- * 새로운 아이콘이 필요한 경우 여기에 추가하면 됩니다.
+ * 아이콘 이름 -> 이모지로 변환
  */
-private fun getIconEmoji(iconName: String): String {
+fun getIconEmoji(iconName: String): String {
     return when (iconName) {
         "restaurant" -> "🍽️"
         "directions_car" -> "🚗"

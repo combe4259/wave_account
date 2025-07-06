@@ -23,13 +23,11 @@ import androidx.compose.ui.window.Dialog
 
 /**
  * 새 카테고리 추가를 위한 다이얼로그
- *
- * 이 다이얼로그는 다음과 같은 기능을 제공합니다:
- * 1. 카테고리 이름 입력
- * 2. 아이콘 선택 (이모지 기반)
- * 3. 색상 선택 (미리 정의된 색상 팔레트)
- * 4. 실시간 미리보기
- * 5. 유효성 검사
+ * 카테고리 이름 입력
+ * 아이콘 선택
+ * 색상 선택
+ * 실시간 미리보기
+ * 유효성 검사
  */
 @Composable
 fun AddCategoryDialog(
@@ -111,9 +109,6 @@ fun AddCategoryDialog(
 
 /**
  * 카테고리 미리보기 컴포넌트
- *
- * 사용자가 선택한 설정이 실제로 어떻게 보일지 실시간으로 보여줍니다.
- * 이렇게 하면 사용자가 원하는 모양을 만들 때까지 조정할 수 있습니다.
  */
 @Composable
 private fun CategoryPreview(
@@ -149,12 +144,12 @@ private fun CategoryPreview(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-//                Text(
-//                    text = getIconEmoji(iconName),
-//                    fontSize = 24.sp
-//                )
                 Text(
-                    text = name.take(4), // 최대 4글자만 표시
+                    text = getIconEmoji(iconName),
+                    fontSize = 24.sp
+                )
+                Text(
+                    text = name.take(8), // 최대 8글자만 표시
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center
@@ -166,9 +161,6 @@ private fun CategoryPreview(
 
 /**
  * 카테고리 이름 입력 필드
- *
- * 사용자가 카테고리 이름을 입력할 수 있는 텍스트 필드입니다.
- * 유효성 검사 결과에 따라 에러 메시지를 표시합니다.
  */
 @Composable
 private fun CategoryNameInput(
@@ -182,12 +174,11 @@ private fun CategoryNameInput(
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Medium
         )
-
         OutlinedTextField(
             value = name,
             onValueChange = onNameChange,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("예: 취미, 건강, 여행") },
+            placeholder = { Text("예: 건강, 여행") },
             isError = name.isNotEmpty() && !isValid,
             singleLine = true
         )
@@ -204,10 +195,6 @@ private fun CategoryNameInput(
 
 /**
  * 아이콘 선택 섹션
- *
- * 사용자가 카테고리에 사용할 아이콘을 선택할 수 있습니다.
- * 실제 프로젝트에서는 벡터 아이콘을 사용할 수 있지만,
- * 여기서는 이모지를 사용해서 간단하게 구현했습니다.
  */
 @Composable
 private fun IconSelectionSection(
@@ -281,10 +268,10 @@ private fun IconOption(
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
-//        Text(
-//            text = getIconEmoji(iconName),
-//            fontSize = 20.sp
-//        )
+        Text(
+            text = getIconEmoji(iconName),
+            fontSize = 20.sp
+        )
     }
 }
 
@@ -369,7 +356,7 @@ private fun ColorOption(
 }
 
 /**
- * 다이얼로그 버튼들 (취소, 추가)
+ * 다이얼로그 버튼 - 취소, 추가
  */
 @Composable
 private fun DialogButtons(
@@ -397,8 +384,3 @@ private fun DialogButtons(
         }
     }
 }
-
-/**
- * 아이콘 이름을 이모지로 변환하는 유틸리티 함수
- * (CategoryGridSelector와 동일한 함수)
- */
