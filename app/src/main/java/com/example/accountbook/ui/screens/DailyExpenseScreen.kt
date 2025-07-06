@@ -214,94 +214,6 @@ fun DailyExpenseList(
 }
 
 @Composable
-fun DailyExpenseItem(
-    expense: ExpenseWithCategory, // 타입 변경!
-    onDelete: () -> Unit,
-    onClick: () -> Unit
-) {
-    val timeFormat = SimpleDateFormat("HH:mm", Locale.KOREA)
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        onClick = onClick
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // 카테고리 아이콘 추가!
-                expense.iconName?.let { iconName ->
-                    Text(
-                        text = getIconEmoji(iconName),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-
-                Column {
-                    Text(
-                        text = expense.productName,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    // 카테고리 이름 추가!
-                    Text(
-                        text = expense.categoryName ?: "카테고리 없음",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    Text(
-                        text = timeFormat.format(Date(expense.date)),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = NumberFormat.getNumberInstance(Locale.KOREA)
-                        .format(expense.amount) + "원",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "삭제",
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun ExpenseDetailDialog(
     expense: ExpenseWithCategory, // 타입 변경!
     onDismiss: () -> Unit,
@@ -387,6 +299,94 @@ fun ExpenseDetailDialog(
             }
         }
     )
+}
+
+@Composable
+fun DailyExpenseItem(
+    expense: ExpenseWithCategory, // 타입 변경!
+    onDelete: () -> Unit,
+    onClick: () -> Unit
+) {
+    val timeFormat = SimpleDateFormat("HH:mm", Locale.KOREA)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // 카테고리 아이콘 추가!
+                expense.iconName?.let { iconName ->
+                    Text(
+                        text = getIconEmoji(iconName),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+
+                Column {
+                    Text(
+                        text = expense.productName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    // 카테고리 이름 추가!
+                    Text(
+                        text = expense.categoryName ?: "카테고리 없음",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    Text(
+                        text = timeFormat.format(Date(expense.date)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = NumberFormat.getNumberInstance(Locale.KOREA)
+                        .format(expense.amount) + "원",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "삭제",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable

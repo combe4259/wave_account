@@ -35,7 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import com.example.accountbook.ui.components.images.ImageOptionsDialog
-import com.example.accountbook.ui.state.AddExpenseUiState
+import com.example.accountbook.dto.AddExpenseUiState
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -384,49 +384,7 @@ private fun MainInfoCard(
         }
     }
 }
-//Todo
-//@OptIn(ExperimentalMaterial3Api::class)
-//@Composable
-//private fun CategorySelectorCompact(
-//    categories: List<Category>,
-//    selectedCategoryId: Long?,
-//    isExpanded: Boolean,
-//    onCategorySelected: (Long?) -> Unit,
-//    onExpandedChange: (Boolean) -> Unit
-//) {
-//    val selectedCategory = categories.find { it.id == selectedCategoryId }
-//
-//    ExposedDropdownMenuBox(
-//        expanded = isExpanded,
-//        onExpandedChange = onExpandedChange
-//    ) {
-//        Text(
-//            text = selectedCategory?.name ?: "선택하세요",
-//            style = MaterialTheme.typography.titleMedium,
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .menuAnchor()
-//                .clickable { onExpandedChange(true) }
-//        )
-//
-//        ExposedDropdownMenu(
-//            expanded = isExpanded,
-//            onDismissRequest = { onExpandedChange(false) }
-//        ) {
-//            DropdownMenuItem(
-//                text = { Text("카테고리 없음") },
-//                onClick = { onCategorySelected(null) }
-//            )
-//
-//            categories.forEach { category ->
-//                DropdownMenuItem(
-//                    text = { Text(category.name) },
-//                    onClick = { onCategorySelected(category.id) }
-//                )
-//            }
-//        }
-//    }
-//}
+
 
 
 @Composable
