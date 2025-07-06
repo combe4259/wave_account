@@ -235,6 +235,7 @@ private fun AppContent(
                 AddExpenseScreen(
                     viewModel = viewModel,
                     modifier = Modifier.fillMaxSize(),
+                    initialDate = currentScreen.initialDate,
                     onNavigateBack = {
                         // 지출 추가 완료 후 적절한 화면으로 복귀
                         // 특정 날짜에서 온 경우 해당 날짜로, 아니면 달력으로

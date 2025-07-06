@@ -7,8 +7,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.*
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.List
@@ -47,93 +48,116 @@ fun CalendarMainScreen(
         calculateMonthlyExpenseData(expensesWithCategory, currentMonth)
     }
 
-    Column(modifier = modifier.padding(16.dp)) {
-        // 월 네비게이션 헤더
-        MonthNavigationHeader(
-            currentMonth = currentMonth,
-            onPreviousMonth = {
-                currentMonth = Calendar.getInstance().apply {
-                    time = currentMonth.time
-                    add(Calendar.MONTH, -1)
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    // 오늘 날짜로 지출 추가 화면 이동
+                    onDateSelected(System.currentTimeMillis())
                 }
-            },
-            onNextMonth = {
-                currentMonth = Calendar.getInstance().apply {
-                    time = currentMonth.time
-                    add(Calendar.MONTH, 1)
-                }
-            }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 탭 추가
-        TabRow(
-            selectedTabIndex = selectedTab,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary
-        ) {
-            Tab(
-                selected = selectedTab == 0,
-                onClick = { selectedTab = 0 }
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(12.dp)
-                ) {
-                    Icon(
-                        Icons.Default.CalendarMonth,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("달력")
-                }
-            }
-
-            Tab(
-                selected = selectedTab == 1,
-                onClick = { selectedTab = 1 }
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(12.dp)
-                ) {
-                    Icon(
-                        Icons.Default.List,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("일일")
-                }
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "지출 추가"
+                )
             }
         }
-
-        // 탭 내용 - 이제 통합된 데이터를 사용합니다
-        when (selectedTab) {
-            0 -> {
-                // 달력 탭 - 통합된 데이터 사용
-                CalendarTabContent(
-                    monthlyData = monthlyData,
-                    onDateSelected = onDateSelected
-                )
-            }
-            1 -> {
-                // 일일 탭 - 동일한 통합 데이터 사용
-                DailyListTabContent(
-                    monthlyData = monthlyData,
-                    onExpenseClick = { expense ->
-                        onDateSelected(expense.date)
-                    },
-                    onDeleteExpense = { expense ->
-                        viewModel.deleteExpense(expense.toExpense())
+    ) { paddingValues ->
+        Column(
+            modifier = modifier
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
+            // 월 네비게이션 헤더
+            MonthNavigationHeader(
+                currentMonth = currentMonth,
+                onPreviousMonth = {
+                    currentMonth = Calendar.getInstance().apply {
+                        time = currentMonth.time
+                        add(Calendar.MONTH, -1)
                     }
-                )
+                },
+                onNextMonth = {
+                    currentMonth = Calendar.getInstance().apply {
+                        time = currentMonth.time
+                        add(Calendar.MONTH, 1)
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 탭 추가
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary
+            ) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 }
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(12.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("달력")
+                    }
+                }
+
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 }
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(12.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.List,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("일일")
+                    }
+                }
+            }
+
+
+            // 탭 내용 - 이제 통합된 데이터를 사용합니다
+            when (selectedTab) {
+                0 -> {
+                    // 달력 탭 - 통합된 데이터 사용
+                    CalendarTabContent(
+                        monthlyData = monthlyData,
+                        onDateSelected = onDateSelected
+                    )
+                }
+
+                1 -> {
+                    // 일일 탭 - 동일한 통합 데이터 사용
+                    DailyListTabContent(
+                        monthlyData = monthlyData,
+                        onExpenseClick = { expense ->
+                            onDateSelected(expense.date)
+                        },
+                        onDeleteExpense = { expense ->
+                            viewModel.deleteExpense(expense.toExpense())
+                        }
+                    )
+                }
             }
         }
     }
 }
+
 
 // 공통 월별 요약 컴포넌트 - 두 탭에서 완전히 동일한 표시
 @Composable

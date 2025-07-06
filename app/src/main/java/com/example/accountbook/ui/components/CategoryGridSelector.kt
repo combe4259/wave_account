@@ -67,9 +67,6 @@ fun CategoryGrid(
 ) {
     // 모든 아이템들을 하나의 리스트로 만들어서 3개씩 묶어서 처리
     val allItems = mutableListOf<CategoryItemData>().apply {
-        // "카테고리 없음" 옵션 추가
-        add(CategoryItemData.None(isSelected = selectedCategoryId == null))
-
         // 기존 카테고리들 추가
         categories.forEach { category ->
             add(CategoryItemData.Category(
@@ -96,15 +93,7 @@ fun CategoryGrid(
                 rowItems.forEach { itemData ->
                     Box(modifier = Modifier.weight(1f)) {
                         when (itemData) {
-                            is CategoryItemData.None -> {
-                                CategoryGridItem(
-                                    name = "없음",
-                                    iconName = null,
-                                    colorHex = "#9E9E9E",
-                                    isSelected = itemData.isSelected,
-                                    onClick = { onCategorySelected(null) }
-                                )
-                            }
+
                             is CategoryItemData.Category -> {
                                 CategoryGridItem(
                                     name = itemData.category.name,
@@ -155,6 +144,7 @@ fun CategoryGridItem(
     onClick: () -> Unit
 ) {
     // 카테고리별 고유 색상을 파싱하여 아이콘과 강조 요소에 사용
+    val MainColor = Color(0xFF5E69EE)
     val categoryColor = try {
         Color(android.graphics.Color.parseColor(colorHex))
     } catch (e: Exception) {
@@ -172,7 +162,7 @@ fun CategoryGridItem(
 
     // 선택 상태는 카테고리 색상으로 미묘한 테두리 표현
     val borderColor = if (isSelected) {
-        MaterialTheme.colorScheme.outline  // 선택시도 회색 사용
+        MainColor
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)  // 미선택시: 연한 회색
     }
@@ -180,7 +170,7 @@ fun CategoryGridItem(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(1f) // 정사각형 비율 유지 - 이것이 핵심!
+            .aspectRatio(2.5f)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
                 color = borderColor,
@@ -191,59 +181,53 @@ fun CategoryGridItem(
         color = backgroundColor,
         tonalElevation = if (isSelected) 2.dp else 0.dp
     ) {
-        Column(
+        // Column을 Row로 변경하고 가운데 정렬
+        Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(8.dp), // 패딩 조금 줄임
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // 아이콘 영역 - 모든 카테고리에 일관된 공간 할당
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .padding(bottom = 6.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                if (iconName != null) {
-                    // 아이콘이 있는 경우, 카테고리 색상으로 표시하여 개성 부여
-                    Text(
-                        text = getIconEmoji(iconName),
-                        fontSize = 20.sp,
-                        color = if (isSelected) categoryColor else categoryColor.copy(alpha = 0.8f)
-                    )
-                } else {
-                    // 아이콘이 없는 경우, 카테고리 색상의 원형 배경에 첫 글자 표시
-                    Surface(
-                        modifier = Modifier.size(20.dp),
-                        shape = RoundedCornerShape(50),
-                        color = categoryColor.copy(alpha = 0.2f)
+            // 아이콘 부분
+            if (iconName != null) {
+                Text(
+                    text = getIconEmoji(iconName),
+                    fontSize = 16.sp, // 크기 조금 줄임
+                    color = if (isSelected) categoryColor else categoryColor.copy(alpha = 0.8f)
+                )
+            } else {
+                Surface(
+                    modifier = Modifier.size(16.dp), // 크기 줄임
+                    shape = RoundedCornerShape(50),
+                    color = categoryColor.copy(alpha = 0.2f)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            Text(
-                                text = name.take(1), // 첫 글자만 표시
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = categoryColor
-                            )
-                        }
+                        Text(
+                            text = name.take(1),
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = categoryColor
+                        )
                     }
                 }
             }
 
-            // 카테고리 이름 - 시스템 텍스트 색상 사용으로 가독성 보장
+            // 간격 추가
+            Spacer(modifier = Modifier.width(4.dp))
+
+            // 텍스트 부분
             Text(
                 text = name,
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 10.sp, // 크기 조금 줄임
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurface, // 시스템 텍스트 색상 사용
-                fontSize = 11.sp
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -262,7 +246,7 @@ fun AddNewCategoryItem(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(1f) // 다른 카테고리들과 동일한 정사각형 비율
+            .aspectRatio(2.5f) // 다른 카테고리들과 동일한 정사각형 비율
             .border(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), // 미묘한 테두리
