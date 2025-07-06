@@ -44,13 +44,11 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// 화면 정의를 더 명확하고 타입 안전하게 개선
 sealed class Screen(val route: String, val icon: ImageVector, val title: String) {
     object Calendar : Screen("calendar", Icons.Default.DateRange, "가계부")
     object Gallery : Screen("gallery", Icons.Default.Star, "갤러리")
     object Statistics : Screen("statistics", Icons.Default.Settings, "통계")
 
-    // 날짜 관련 화면들을 더 명확하게 정의
     data class DailyDetail(val date: Long) : Screen("daily_detail/${date}", Icons.Default.Today, "일별 상세")
     data class AddExpense(val initialDate: Long? = null) : Screen(
         route = if (initialDate != null) "add_expense/${initialDate}" else "add_expense",
