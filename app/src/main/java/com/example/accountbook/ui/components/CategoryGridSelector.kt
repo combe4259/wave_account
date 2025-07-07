@@ -1,5 +1,6 @@
 package com.example.accountbook.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -143,11 +144,6 @@ fun CategoryGridItem(
 ) {
 
 
-    val categoryColor = try {
-        Color(android.graphics.Color.parseColor(colorHex))
-    } catch (e: Exception) {
-        MaterialTheme.colorScheme.primary // 파싱 실패시 시스템 기본 색상 사용
-    }
 
     val MainColor = Color(0xFF5E69EE)
 
@@ -188,21 +184,23 @@ fun CategoryGridItem(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 아이콘 영역 - 모든 카테고리에 일관된 공간 할당
+            // 아이콘 영역
             Box(
                 modifier = Modifier
                     .size(28.dp)
                     .padding(bottom = 6.dp),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
+
+
             ) {
                 if (iconName != null) {
                     Text(
                         text = getIconEmoji(iconName),
-                        fontSize = 16.sp, // 크기 조금 줄임
+                        fontSize = 16.sp,
                     )
                 } else {
                     Surface(
-                        modifier = Modifier.size(16.dp), // 크기 줄임
+                        modifier = Modifier.size(16.dp),
                         shape = RoundedCornerShape(50),
                         color = Color.White
                     ) {
@@ -236,7 +234,6 @@ fun CategoryGridItem(
 
 /**
  * 새 카테고리 추가 버튼 아이템
- *
  */
 @Composable
 fun AddNewCategoryItem(

@@ -229,9 +229,9 @@ private fun IconOption(
     onClick: () -> Unit
 ) {
     val backgroundColor = if (isSelected) {
-        MaterialTheme.colorScheme.primaryContainer
+        Color.White
     } else {
-        MaterialTheme.colorScheme.surfaceVariant
+        Color.White
     }
 
     val borderColor = if (isSelected) {

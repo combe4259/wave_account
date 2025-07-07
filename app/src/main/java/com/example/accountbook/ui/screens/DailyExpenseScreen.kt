@@ -273,6 +273,7 @@ fun ExpenseDetailDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
         title = {
             Text(
                 text = "지출 상세 정보",

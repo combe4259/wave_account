@@ -174,7 +174,7 @@ private fun AppBottomBar(
                         selectedTextColor = MaterialTheme.colorScheme.primary,
                         unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                        indicatorColor = Color.White
                     )
                 )
             }

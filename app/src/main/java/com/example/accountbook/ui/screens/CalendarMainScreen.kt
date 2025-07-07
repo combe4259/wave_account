@@ -39,7 +39,8 @@ import java.util.*
 fun CalendarMainScreen(
     viewModel: ExpenseViewModel,
     modifier: Modifier = Modifier,
-    onDateSelected: (Long) -> Unit
+    onDateSelected: (Long) -> Unit,
+    onNavigateToAdd: ((Long) -> Unit)? = null
 ) {
     val expensesWithCategory by viewModel.allExpensesWithCategory.observeAsState(emptyList())
     var currentMonth by remember { mutableStateOf(Calendar.getInstance()) }
@@ -176,7 +177,7 @@ fun CommonMonthSummaryCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             //containerColor = MaterialTheme.colorScheme.surfaceVariant
-            containerColor = MainColor.copy(alpha = 0.1f)
+            containerColor = Color.White
 
         )
     ) {
@@ -432,7 +433,6 @@ fun CalendarDay(
 ) {
     val isToday = isToday(dayInfo.date)
     val hasExpense = totalExpense > 0
-    // 주말 여부 판단
     val isWeekendDay = isWeekend(dayInfo.date)
 
     if (!dayInfo.isCurrentMonth) {
@@ -445,10 +445,7 @@ fun CalendarDay(
             .aspectRatio(1f)
             .clickable { onDateClick(dayInfo.date) },
         colors = CardDefaults.cardColors(
-            containerColor = when {
-                hasExpense -> Color.White
-                else -> Color.White
-            }
+            containerColor = Color.White
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = if (hasExpense) 2.dp else 1.dp
@@ -465,7 +462,6 @@ fun CalendarDay(
                         .height(9.dp)
                         .background(MainColor)
                         .align(Alignment.TopCenter)
-
                 )
             }
 
@@ -484,47 +480,7 @@ fun CalendarDay(
                         !dayInfo.isCurrentMonth -> Color.Transparent
                         isToday -> MainColor
                         isWeekendDay -> Color.Red
-                        else -> MaterialTheme.colorScheme.onSurface  // 평일= 기본 색상
-                    }
-                )
-
-                if (hasExpense && dayInfo.isCurrentMonth) {
-                    Text(
-                        text = formatCurrency(totalExpense),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontSize = 9.sp,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            )
-
-            if (hasExpense && dayInfo.isCurrentMonth) {
-                Text(
-                    text = formatCurrency(totalExpense),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = 9.sp,
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = if (dayInfo.isCurrentMonth) dayInfo.day.toString() else "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                    color = when {
-                        !dayInfo.isCurrentMonth -> Color.Transparent
-                        isToday -> MainColor  // 오늘 날짜는 여전히 MainColor
-                        isWeekendDay -> Color.Red  // 주말은 빨간색으로 표시
-                        else -> MaterialTheme.colorScheme.onSurface  // 평일은 기본 색상
+                        else -> MaterialTheme.colorScheme.onSurface
                     }
                 )
 
