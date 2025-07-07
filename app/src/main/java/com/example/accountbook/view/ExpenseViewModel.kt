@@ -7,10 +7,15 @@ import androidx.lifecycle.liveData
 import androidx.lifecycle.viewModelScope
 import com.example.accountbook.local.ExpenseDatabase
 import com.example.accountbook.model.Expense
-import com.example.accountbook.model.Category
+import com.example.accountbook.model.Income
 import com.example.accountbook.dto.ExpenseWithCategory
+import com.example.accountbook.dto.IncomeWithCategory
+import com.example.accountbook.model.ExpenseCategory
+import com.example.accountbook.model.IncomeCategory
 import com.example.accountbook.repository.ExpenseRepository
-import com.example.accountbook.repository.CategoryRepository
+import com.example.accountbook.repository.ExpenseCategoryRepository
+import com.example.accountbook.repository.IncomeCategoryRepository
+import com.example.accountbook.repository.IncomeRepository
 import kotlinx.coroutines.launch
 
 
@@ -23,14 +28,11 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
     private val incomeRepository: IncomeRepository
     private val incomeCategoryRepository: IncomeCategoryRepository
 
-
-    //지출
-
+    // === 지출 관련 LiveData ===
+    // 이 LiveData들은 UI에서 실시간으로 관찰하여 자동 업데이트가 가능합니다
     val allExpenses: LiveData<List<Expense>>
-    val expensesWithPhotos: LiveData<List<Expense>>
-
-    val allCategories: LiveData<List<Category>>
     val allExpensesWithCategory: LiveData<List<ExpenseWithCategory>>
+    val expensesWithPhotos: LiveData<List<Expense>>
     val expensesWithPhotosAndCategory: LiveData<List<ExpenseWithCategory>>
 
 
@@ -44,28 +46,37 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
 
     init {
 
+
         val database = ExpenseDatabase.getDatabase(application)
         val expenseDao = database.expenseDao()
-        val categoryDao = database.categoryDao()
+        val incomeDao = database.incomeDao()
+        val expenseCategoryDao = database.expenseCategoryDao()
+        val incomeCategoryDao = database.incomeCategoryDao()
 
-        // Repository 인스턴스 생성
+        // Repository 인스턴스들을 초기화합니다
+        // 각 Repository는 해당 도메인의 비즈니스 로직을 캡슐화합니다
         expenseRepository = ExpenseRepository(expenseDao)
-        categoryRepository = CategoryRepository(categoryDao)
+        expenseCategoryRepository = ExpenseCategoryRepository(expenseCategoryDao)
+        incomeRepository = IncomeRepository(incomeDao)
+        incomeCategoryRepository = IncomeCategoryRepository(incomeCategoryDao)
 
+        // LiveData들을 Repository에서 가져와서 초기화합니다
+        // 이렇게 하면 데이터베이스의 변경사항이 UI에 자동으로 반영됩니다
         allExpenses = expenseRepository.allExpenses
-        expensesWithPhotos = expenseRepository.getExpensesWithValidPhotos()
-
-        allCategories = categoryRepository.getAllCategories()
         allExpensesWithCategory = expenseRepository.getAllExpensesWithCategory()
+        expensesWithPhotos = expenseRepository.getExpensesWithValidPhotos()
         expensesWithPhotosAndCategory = expenseRepository.getExpensesWithPhotosAndCategory()
 
+        allIncomes = incomeRepository.allIncomes
+        allIncomesWithCategory = incomeRepository.getAllIncomesWithCategory()
 
         allExpenseCategories = expenseCategoryRepository.getAllCategories()
         allIncomeCategories = incomeCategoryRepository.getAllCategories()
 
         //기본 카테고리 생성
         viewModelScope.launch {
-            categoryRepository.insertDefaultCategories()
+            expenseCategoryRepository.insertDefaultExpenseCategories()
+            incomeCategoryRepository.insertDefaultIncomeCategories()
         }
     }
 
@@ -73,6 +84,7 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
 
     /**
      * 새로운 지출 추가
+
      */
     fun insertExpense(expense: Expense) = viewModelScope.launch {
         expenseRepository.insertExpense(expense)
@@ -92,7 +104,6 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         expenseRepository.deleteExpense(expense)
     }
 
-
     /**
      * ID로 지출 삭제
      */
@@ -108,6 +119,7 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
     }
 
     /**
+
      * 지출 카테고리 변경
      */
     fun updateExpenseCategory(expenseId: Long, categoryId: Long?) = viewModelScope.launch {
@@ -115,17 +127,21 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
     }
 
     /**
+
      * 지출 사진 추가 변경
+
      */
     fun updateExpensePhoto(expenseId: Long, photoUri: String?) = viewModelScope.launch {
         expenseRepository.updateExpensePhoto(expenseId, photoUri)
     }
 
 
+
     // 소득 관련 메서드들
 
     /**
      * 새로운 소득 추가
+
      */
     fun insertIncome(income: Income) = viewModelScope.launch {
         incomeRepository.insertIncome(income)
@@ -139,11 +155,14 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
     }
 
     /**
+
      * 소득 삭제
+
      */
     fun deleteIncome(income: Income) = viewModelScope.launch {
         incomeRepository.deleteIncome(income)
     }
+
 
     // 지출 카테고리 관리 메서드들
 
@@ -154,22 +173,39 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         expenseCategoryRepository.insertCategory(category)
     }
 
-    // 카테고리 삭제
-    fun deleteCategory(category: Category) = viewModelScope.launch {
-        categoryRepository.deleteCategory(category)
+    /**
+     * 새로운 지출 카테고리를 생성합니다 (유효성 검사 포함)
+     * @param name 카테고리 이름
+     * @param iconName 아이콘 이름
+     */
+    fun createExpenseCategory(name: String, iconName: String) = viewModelScope.launch {
+        expenseCategoryRepository.createCategory(name, iconName)
     }
 
-    // 특정 카테고리 조회
-    fun getCategoryById(id: Long): LiveData<Category?> = liveData {
-        emit(categoryRepository.getCategoryById(id))
+    /**
+     * 지출 카테고리 정보를 수정합니다
+     * @param category 수정된 카테고리 객체
+     */
+    fun updateExpenseCategory(category: ExpenseCategory) = viewModelScope.launch {
+        expenseCategoryRepository.updateCategory(category)
     }
 
-    // 카테고리 이름 중복 체크
-    fun isCategoryNameExists(name: String): LiveData<Boolean> = liveData {
-        emit(categoryRepository.isCategoryNameExists(name))
+    /**
+     * 지출 카테고리 이름을 수정합니다 (중복 체크 포함)
+     * @param categoryId 카테고리 ID
+     * @param newName 새로운 이름
+     */
+    fun updateExpenseCategoryName(categoryId: Long, newName: String) = viewModelScope.launch {
+        expenseCategoryRepository.updateCategoryName(categoryId, newName)
     }
 
-    // === 주석 처리된 메서드들을 카테고리 기능과 함께 활성화 ===
+    /**
+     * 지출 카테고리를 삭제합니다
+     * @param category 삭제할 카테고리 객체
+     */
+    fun deleteExpenseCategory(category: ExpenseCategory) = viewModelScope.launch {
+        expenseCategoryRepository.deleteCategory(category)
+    }
 
 
     /**
@@ -183,22 +219,27 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
 
     /**
      * 지출 카테고리 이름 중복을 체크합니다
+
      */
     fun isExpenseCategoryNameExists(name: String): LiveData<Boolean> = liveData {
         emit(expenseCategoryRepository.isCategoryNameExists(name))
     }
 
+
     // 소득 카테고리 관리 메서드들
 
 //    /**
 //     * 새로운 소득 카테고리를 추가합니다
+
 //     */
 //    fun insertIncomeCategory(category: IncomeCategory) = viewModelScope.launch {
 //        incomeCategoryRepository.insertCategory(category)
 //    }
 
     /**
+
      * 소득 카테고리 정보를 수정
+
      */
     fun updateIncomeCategory(category: IncomeCategory) = viewModelScope.launch {
         incomeCategoryRepository.updateCategory(category)
@@ -206,17 +247,21 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
 
     /**
      * 소득 카테고리를 삭제
+
      */
     fun deleteIncomeCategory(category: IncomeCategory) = viewModelScope.launch {
         incomeCategoryRepository.deleteCategory(category)
     }
 
     /**
+
      * 소득 카테고리 이름 중복을 체크
+
      */
     fun isIncomeCategoryNameExists(name: String): LiveData<Boolean> = liveData {
         emit(incomeCategoryRepository.isCategoryNameExists(name))
     }
+
 
     // 조회 및 분석 메서드들
 
@@ -233,5 +278,6 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
     fun getExpensesByDateRange(startDate: Long, endDate: Long): LiveData<List<ExpenseWithCategory>> {
         return expenseRepository.getExpensesByDateRange(startDate, endDate)
     }
+
 
 }

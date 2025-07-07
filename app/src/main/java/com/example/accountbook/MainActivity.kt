@@ -34,7 +34,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.accountbook.ui.screens.*
 
 class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(savedInstanceState: Bundle?) { //이 시점에서 앱의 기본 설정과 UI 구성이 이루어짐
         super.onCreate(savedInstanceState)
         enableEdgeToEdge() // 전체화면 활용
         setContent {
@@ -45,13 +45,13 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// 화면 정의를 더 명확하고 타입 안전하게 개선
+
+//앱의 모든 화면 관리
 sealed class Screen(val route: String, val icon: ImageVector, val title: String) {
     object Calendar : Screen("calendar", Icons.Default.DateRange, "가계부")
     object Gallery : Screen("gallery", Icons.Default.Star, "갤러리")
     object Statistics : Screen("statistics", Icons.Default.Settings, "통계")
 
-    // 날짜 관련 화면들을 더 명확하게 정의
     data class DailyDetail(val date: Long) : Screen("daily_detail/${date}", Icons.Default.Today, "일별 상세")
     data class AddExpense(val initialDate: Long? = null) : Screen(
         route = if (initialDate != null) "add_expense/${initialDate}" else "add_expense",
@@ -238,6 +238,7 @@ private fun AppContent(
                 AddExpenseScreen(
                     viewModel = viewModel,
                     modifier = Modifier.fillMaxSize(),
+                    initialDate = currentScreen.initialDate,
                     onNavigateBack = {
                         // 지출 추가 완료 후 적절한 화면으로 복귀
                         if (currentScreen.initialDate != null) {

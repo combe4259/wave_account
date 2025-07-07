@@ -13,11 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.accountbook.model.Category
+import com.example.accountbook.model.ExpenseCategory
 
 /**
  * 카테고리를 3×N 그리드 형태로 선택할 수 있는 컴포넌트
@@ -30,7 +29,7 @@ import com.example.accountbook.model.Category
  */
 @Composable
 fun CategoryGridSelector(
-    categories: List<Category>,
+    categories: List<ExpenseCategory>,
     selectedCategoryId: Long?,
     onCategorySelected: (Long?) -> Unit,
     onAddNewCategory: () -> Unit,
@@ -42,7 +41,8 @@ fun CategoryGridSelector(
             text = "카테고리 선택",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(bottom = 12.dp)
+            modifier = Modifier.padding(bottom = 12.dp),
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         // 카테고리 그리드
@@ -56,22 +56,17 @@ fun CategoryGridSelector(
 }
 
 /**
- * 실제 카테고리 그리드를 그리는 컴포넌트
- * LazyVerticalGrid 대신 일반 Column과 Row 조합을 사용해서
- * LazyColumn 안에서도 안전하게 사용할 수 있도록 만들었습니다.
+ * 실제 카테고리 그리드
  */
 @Composable
 fun CategoryGrid(
-    categories: List<Category>,
+    categories: List<ExpenseCategory>,
     selectedCategoryId: Long?,
     onCategorySelected: (Long?) -> Unit,
     onAddNewCategory: () -> Unit
 ) {
     // 모든 아이템들을 하나의 리스트로 만들어서 3개씩 묶어서 처리
     val allItems = mutableListOf<CategoryItemData>().apply {
-        // "카테고리 없음" 옵션 추가
-        add(CategoryItemData.None(isSelected = selectedCategoryId == null))
-
         // 기존 카테고리들 추가
         categories.forEach { category ->
             add(CategoryItemData.Category(
@@ -98,20 +93,11 @@ fun CategoryGrid(
                 rowItems.forEach { itemData ->
                     Box(modifier = Modifier.weight(1f)) {
                         when (itemData) {
-                            is CategoryItemData.None -> {
-                                CategoryGridItem(
-                                    name = "없음",
-                                    iconName = null,
-                                    colorHex = "#9E9E9E",
-                                    isSelected = itemData.isSelected,
-                                    onClick = { onCategorySelected(null) }
-                                )
-                            }
+
                             is CategoryItemData.Category -> {
                                 CategoryGridItem(
                                     name = itemData.category.name,
                                     iconName = itemData.category.iconName,
-                                    colorHex = itemData.category.colorHex,
                                     isSelected = itemData.isSelected,
                                     onClick = { onCategorySelected(itemData.category.id) }
                                 )
@@ -135,11 +121,10 @@ fun CategoryGrid(
 
 /**
  * 카테고리 아이템의 데이터 타입을 정의하는 sealed class
- * 이렇게 하면 각각 다른 타입의 아이템들을 안전하게 처리할 수 있습니다.
  */
 sealed class CategoryItemData {
     data class None(val isSelected: Boolean) : CategoryItemData()
-    data class Category(val category: com.example.accountbook.model.Category, val isSelected: Boolean) : CategoryItemData()
+    data class Category(val category: ExpenseCategory, val isSelected: Boolean) : CategoryItemData()
     object AddNew : CategoryItemData()
 }
 
@@ -153,10 +138,10 @@ sealed class CategoryItemData {
 fun CategoryGridItem(
     name: String,
     iconName: String?,
-    colorHex: String,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+
 
     val categoryColor = try {
         Color(android.graphics.Color.parseColor(colorHex))
@@ -174,8 +159,9 @@ fun CategoryGridItem(
 
 
     // 선택 상태는 카테고리 색상으로 미묘한 테두리 표현
+
     val borderColor = if (isSelected) {
-        categoryColor.copy(alpha = 0.6f)
+        MainColor
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
     }
@@ -183,7 +169,7 @@ fun CategoryGridItem(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(1f) // 정사각형 비율 유지 - 이것이 핵심!
+            .aspectRatio(2.5f)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
                 color = borderColor,
@@ -194,12 +180,13 @@ fun CategoryGridItem(
         color = backgroundColor,
         tonalElevation = if (isSelected) 2.dp else 0.dp
     ) {
-        Column(
+        // Column을 Row로 변경하고 가운데 정렬
+        Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(8.dp), // 패딩 조금 줄임
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             // 아이콘 영역 - 모든 카테고리에 일관된 공간 할당
             Box(
@@ -219,35 +206,33 @@ fun CategoryGridItem(
                         shape = RoundedCornerShape(50),
                         color = Color.White
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            Text(
-                                text = name.take(1), // 첫 글자만 표시
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = categoryColor
-                            )
-                        }
+                        Text(
+                            text = name.take(1),
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
 
-            // 카테고리 이름 - 시스템 텍스트 색상 사용으로 가독성 보장
+            // 간격 추가
+            Spacer(modifier = Modifier.width(4.dp))
+
+            // 텍스트 부분
             Text(
                 text = name,
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 10.sp, // 크기 조금 줄임
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurface, // 시스템 텍스트 색상 사용
-                fontSize = 11.sp
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
 }
+
+
 
 /**
  * 새 카테고리 추가 버튼 아이템
@@ -260,7 +245,7 @@ fun AddNewCategoryItem(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(1f) // 다른 카테고리들과 동일한 정사각형 비율
+            .aspectRatio(2.5f)
             .border(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), // 미묘한 테두리
@@ -304,16 +289,7 @@ fun AddNewCategoryItem(
     }
 }
 
-/**
- * 아이콘 이름을 이모지로 변환하는 유틸리티 함수
- *
- * 실제 프로젝트에서는 벡터 아이콘이나 이미지 리소스를 사용할 수 있지만,
- * 간단한 구현을 위해 이모지를 사용합니다.
- *
- * 각 카테고리의 성격을 잘 나타내는 이모지를 선택했으며,
- * 새로운 아이콘이 필요한 경우 여기에 추가하면 됩니다.
- */
-private fun getIconEmoji(iconName: String): String {
+fun getIconEmoji(iconName: String): String {
     return when (iconName) {
         "restaurant" -> "🍽️"
         "directions_car" -> "🚗"

@@ -5,13 +5,12 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-//@Entity(tableName = "expenses")->변경
 @Entity(
     tableName = "expenses",
     foreignKeys = [
         ForeignKey(
-            entity = Category::class,
-            parentColumns = ["id"], //category의 id 참조
+            entity = ExpenseCategory::class,
+            parentColumns = ["id"], //ExpenseCategory의 id 참조
             childColumns = ["categoryId"], //expense의 categoryId가 category의 id 참조
             onDelete = ForeignKey.SET_NULL // 카테고리 삭제 시 지출 데이터는 남김
         )

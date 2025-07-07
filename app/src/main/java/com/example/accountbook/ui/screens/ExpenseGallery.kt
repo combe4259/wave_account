@@ -82,10 +82,11 @@ fun ExpenseGalleryScreen(
 
 /**
  * 갤러리의 메인 컨텐츠
+ * 이제 개별 매개변수들을 받아서 처리하도록 변경되었습니다
  */
 @Composable
 private fun GalleryContent(
-    isLoading: Boolean,
+    isLoading: Boolean,  // GalleryUiState 대신 개별 매개변수들을 받습니다
     expensesWithImages: List<ExpenseWithCategory>,
     onImageClick: (ExpenseWithCategory) -> Unit,
     onRefresh: () -> Unit,

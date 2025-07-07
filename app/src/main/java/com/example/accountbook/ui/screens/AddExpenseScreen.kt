@@ -1,8 +1,8 @@
 package com.example.accountbook.ui.screens
 
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult  // 추가!
-import androidx.activity.result.contract.ActivityResultContracts   // 추가!
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,15 +17,12 @@ import com.example.accountbook.ui.components.CategoryGridSelector
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.accountbook.model.Expense
-import com.example.accountbook.model.Category
+import com.example.accountbook.model.ExpenseCategory
 import com.example.accountbook.view.ExpenseViewModel
 import java.text.SimpleDateFormat
 import java.util.*
-
-
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,23 +31,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import com.example.accountbook.ui.components.images.ImageOptionsDialog
-import com.example.accountbook.ui.state.AddExpenseUiState
+import com.example.accountbook.dto.AddExpenseUiState
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Environment
-import androidx.compose.foundation.border
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import com.example.accountbook.ui.components.AddCategoryDialog
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,6 +49,14 @@ fun AddExpenseScreen(
     onNavigateBack: () -> Unit,
     initialDate: Long? = null
 ) {
+
+    LaunchedEffect(initialDate) {
+        println("AddExpenseScreen - initialDate: ${initialDate}")
+        if (initialDate != null) {
+            println("Selected date: ${SimpleDateFormat("yyyy-MM-dd", Locale.KOREA).format(Date(initialDate))}")
+        }
+    }
+
     val context = LocalContext.current
 
     // 상태 관리
@@ -73,6 +69,22 @@ fun AddExpenseScreen(
     }
     //카테고리 다이얼로그
     var showAddCategoryDialog by remember { mutableStateOf(false) }
+    if (showAddCategoryDialog) {
+        AddCategoryDialog(
+            onDismiss = { showAddCategoryDialog = false },
+            onConfirm = { name, iconName->
+                // 새 카테고리 객체 생성
+                val newCategory = ExpenseCategory(
+                    name = name,
+                    iconName = iconName
+                )
+                // 카테고리 추가
+                viewModel.insertExpenseCategory(newCategory)
+                // 다이얼로그 닫기
+                showAddCategoryDialog = false
+            }
+        )
+    }
 
 
     //임시 파일 생성
@@ -133,6 +145,12 @@ fun AddExpenseScreen(
             uiState = uiState.copy(showPermissionDialog = true)
         }
     }
+    if (uiState.showPermissionDialog) {
+        PermissionDialog(
+            onDismiss = { uiState = uiState.copy(showPermissionDialog = false) }
+        )
+    }
+
 
 //카메라 실행
         fun handleCameraClick() {
@@ -152,7 +170,7 @@ fun AddExpenseScreen(
 
 
         // 카테고리 데이터 가져오기
-    val categories by viewModel.allCategories.observeAsState(emptyList())
+    val categories by viewModel.allExpenseCategories.observeAsState(emptyList())
 
     Scaffold(
         containerColor = Color.White,
@@ -226,7 +244,7 @@ fun AddExpenseScreen(
                 }
             }
 
-// 날짜 선택 (별도 item)
+// 날짜 선택
             item {
                 Card(
                     modifier = Modifier
@@ -246,19 +264,20 @@ fun AddExpenseScreen(
                         Text(
                             text = "날짜",
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         Text(
                             text = SimpleDateFormat("MM/dd", Locale.KOREA).format(Date(uiState.selectedDate)),
                             style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         Text(
                             text = SimpleDateFormat("yyyy년", Locale.KOREA).format(Date(uiState.selectedDate)),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -371,49 +390,7 @@ private fun MainInfoCard(
         }
     }
 }
-//Todo
-//@OptIn(ExperimentalMaterial3Api::class)
-//@Composable
-//private fun CategorySelectorCompact(
-//    categories: List<Category>,
-//    selectedCategoryId: Long?,
-//    isExpanded: Boolean,
-//    onCategorySelected: (Long?) -> Unit,
-//    onExpandedChange: (Boolean) -> Unit
-//) {
-//    val selectedCategory = categories.find { it.id == selectedCategoryId }
-//
-//    ExposedDropdownMenuBox(
-//        expanded = isExpanded,
-//        onExpandedChange = onExpandedChange
-//    ) {
-//        Text(
-//            text = selectedCategory?.name ?: "선택하세요",
-//            style = MaterialTheme.typography.titleMedium,
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .menuAnchor()
-//                .clickable { onExpandedChange(true) }
-//        )
-//
-//        ExposedDropdownMenu(
-//            expanded = isExpanded,
-//            onDismissRequest = { onExpandedChange(false) }
-//        ) {
-//            DropdownMenuItem(
-//                text = { Text("카테고리 없음") },
-//                onClick = { onCategorySelected(null) }
-//            )
-//
-//            categories.forEach { category ->
-//                DropdownMenuItem(
-//                    text = { Text(category.name) },
-//                    onClick = { onCategorySelected(category.id) }
-//                )
-//            }
-//        }
-//    }
-//}
+
 
 
 @Composable
@@ -527,3 +504,18 @@ private fun ImageOptionsDialog(
     )
 }
 
+@Composable
+private fun PermissionDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("카메라 권한 필요") },
+        text = {
+            Text("사진을 촬영하려면 카메라 권한이 필요합니다. 설정에서 권한을 허용해주세요.")
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("확인")
+            }
+        }
+    )
+}

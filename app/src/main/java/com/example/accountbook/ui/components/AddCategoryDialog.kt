@@ -23,24 +23,21 @@ import androidx.compose.ui.window.Dialog
 
 /**
  * 새 카테고리 추가를 위한 다이얼로그
- *
- * 이 다이얼로그는 다음과 같은 기능을 제공합니다:
- * 1. 카테고리 이름 입력
- * 2. 아이콘 선택 (이모지 기반)
- * 3. 색상 선택 (미리 정의된 색상 팔레트)
- * 4. 실시간 미리보기
- * 5. 유효성 검사
+ * 카테고리 이름 입력
+ * 아이콘 선택
+ * 색상 선택
+ * 실시간 미리보기
+ * 유효성 검사
  */
 @Composable
 fun AddCategoryDialog(
     onDismiss: () -> Unit,
-    onConfirm: (name: String, iconName: String, colorHex: String) -> Unit,
+    onConfirm: (name: String, iconName: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     // 다이얼로그 상태 관리
     var categoryName by remember { mutableStateOf("") }
     var selectedIcon by remember { mutableStateOf("more_horiz") }
-    var selectedColor by remember { mutableStateOf("#2196F3") }
 
     // 유효성 검사
     val isNameValid = categoryName.trim().isNotEmpty()
@@ -73,8 +70,7 @@ fun AddCategoryDialog(
                 // 미리보기 섹션
                 CategoryPreview(
                     name = categoryName.ifEmpty { "카테고리 이름" },
-                    iconName = selectedIcon,
-                    colorHex = selectedColor
+                    iconName = selectedIcon
                 )
 
                 // 카테고리 이름 입력
@@ -90,18 +86,12 @@ fun AddCategoryDialog(
                     onIconSelected = { selectedIcon = it }
                 )
 
-                // 색상 선택 섹션
-                ColorSelectionSection(
-                    selectedColor = selectedColor,
-                    onColorSelected = { selectedColor = it }
-                )
-
                 // 버튼 영역
                 DialogButtons(
                     canConfirm = canConfirm,
                     onDismiss = onDismiss,
                     onConfirm = {
-                        onConfirm(categoryName.trim(), selectedIcon, selectedColor)
+                        onConfirm(categoryName.trim(), selectedIcon)
                     }
                 )
             }
@@ -111,21 +101,12 @@ fun AddCategoryDialog(
 
 /**
  * 카테고리 미리보기 컴포넌트
- *
- * 사용자가 선택한 설정이 실제로 어떻게 보일지 실시간으로 보여줍니다.
- * 이렇게 하면 사용자가 원하는 모양을 만들 때까지 조정할 수 있습니다.
  */
 @Composable
 private fun CategoryPreview(
     name: String,
-    iconName: String,
-    colorHex: String
+    iconName: String
 ) {
-    val backgroundColor = try {
-        Color(android.graphics.Color.parseColor(colorHex))
-    } catch (e: Exception) {
-        MaterialTheme.colorScheme.surfaceVariant
-    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -150,12 +131,12 @@ private fun CategoryPreview(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-//                Text(
-//                    text = getIconEmoji(iconName),
-//                    fontSize = 24.sp
-//                )
                 Text(
-                    text = name.take(4), // 최대 4글자만 표시
+                    text = getIconEmoji(iconName),
+                    fontSize = 24.sp
+                )
+                Text(
+                    text = name.take(8), // 최대 8글자만 표시
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center
@@ -167,9 +148,6 @@ private fun CategoryPreview(
 
 /**
  * 카테고리 이름 입력 필드
- *
- * 사용자가 카테고리 이름을 입력할 수 있는 텍스트 필드입니다.
- * 유효성 검사 결과에 따라 에러 메시지를 표시합니다.
  */
 @Composable
 private fun CategoryNameInput(
@@ -183,12 +161,11 @@ private fun CategoryNameInput(
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Medium
         )
-
         OutlinedTextField(
             value = name,
             onValueChange = onNameChange,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("예: 취미, 건강, 여행") },
+            placeholder = { Text("예: 건강, 여행") },
             isError = name.isNotEmpty() && !isValid,
             singleLine = true
         )
@@ -205,10 +182,6 @@ private fun CategoryNameInput(
 
 /**
  * 아이콘 선택 섹션
- *
- * 사용자가 카테고리에 사용할 아이콘을 선택할 수 있습니다.
- * 실제 프로젝트에서는 벡터 아이콘을 사용할 수 있지만,
- * 여기서는 이모지를 사용해서 간단하게 구현했습니다.
  */
 @Composable
 private fun IconSelectionSection(
@@ -282,95 +255,16 @@ private fun IconOption(
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
-//        Text(
-//            text = getIconEmoji(iconName),
-//            fontSize = 20.sp
-//        )
-    }
-}
-
-/**
- * 색상 선택 섹션
- *
- * 미리 정의된 색상 팔레트에서 카테고리 색상을 선택할 수 있습니다.
- * 각 색상은 가계부 앱에서 사용하기 적합한 색상들로 구성되어 있습니다.
- */
-@Composable
-private fun ColorSelectionSection(
-    selectedColor: String,
-    onColorSelected: (String) -> Unit
-) {
-    val availableColors = listOf(
-        "#FF5722", "#E91E63", "#9C27B0", "#673AB7",
-        "#3F51B5", "#2196F3", "#03A9F4", "#00BCD4",
-        "#009688", "#4CAF50", "#8BC34A", "#CDDC39",
-        "#FFEB3B", "#FFC107", "#FF9800", "#FF5722",
-        "#795548", "#9E9E9E", "#607D8B", "#000000"
-    )
-
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "색상 선택",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Medium
+            text = getIconEmoji(iconName),
+            fontSize = 20.sp
         )
-
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(5),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.height(100.dp)
-        ) {
-            items(availableColors) { colorHex ->
-                ColorOption(
-                    colorHex = colorHex,
-                    isSelected = selectedColor == colorHex,
-                    onClick = { onColorSelected(colorHex) }
-                )
-            }
-        }
     }
 }
 
-/**
- * 개별 색상 선택 옵션
- */
-@Composable
-private fun ColorOption(
-    colorHex: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val color = try {
-        Color(android.graphics.Color.parseColor(colorHex))
-    } catch (e: Exception) {
-        MaterialTheme.colorScheme.surfaceVariant
-    }
-
-    val borderColor = if (isSelected) {
-        MaterialTheme.colorScheme.onSurface
-    } else {
-        Color.Gray.copy(alpha = 0.3f)
-    }
-
-    Box(
-        modifier = Modifier
-            .size(32.dp)
-            .border(
-                width = if (isSelected) 3.dp else 1.dp,
-                color = borderColor,
-                shape = CircleShape
-            )
-            .background(
-                color = color,
-                shape = CircleShape
-            )
-            .clickable { onClick() }
-    )
-}
 
 /**
- * 다이얼로그 버튼들 (취소, 추가)
+ * 다이얼로그 버튼 - 취소, 추가
  */
 @Composable
 private fun DialogButtons(
@@ -398,8 +292,3 @@ private fun DialogButtons(
         }
     }
 }
-
-/**
- * 아이콘 이름을 이모지로 변환하는 유틸리티 함수
- * (CategoryGridSelector와 동일한 함수)
- */
