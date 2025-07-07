@@ -1,8 +1,8 @@
 package com.example.accountbook.ui.screens
 
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult  // 추가!
-import androidx.activity.result.contract.ActivityResultContracts   // 추가!
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,15 +17,12 @@ import com.example.accountbook.ui.components.CategoryGridSelector
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.accountbook.model.Expense
-import com.example.accountbook.model.Category
+import com.example.accountbook.model.ExpenseCategory
 import com.example.accountbook.view.ExpenseViewModel
 import java.text.SimpleDateFormat
 import java.util.*
-
-
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,21 +31,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import com.example.accountbook.ui.components.images.ImageOptionsDialog
 import com.example.accountbook.dto.AddExpenseUiState
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Environment
-import androidx.compose.foundation.border
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.example.accountbook.ui.components.AddCategoryDialog
@@ -85,15 +72,14 @@ fun AddExpenseScreen(
     if (showAddCategoryDialog) {
         AddCategoryDialog(
             onDismiss = { showAddCategoryDialog = false },
-            onConfirm = { name, iconName, colorHex ->
+            onConfirm = { name, iconName->
                 // 새 카테고리 객체 생성
-                val newCategory = Category(
+                val newCategory = ExpenseCategory(
                     name = name,
-                    iconName = iconName,
-                    colorHex = colorHex
+                    iconName = iconName
                 )
                 // 카테고리 추가
-                viewModel.insertCategory(newCategory)
+                viewModel.insertExpenseCategory(newCategory)
                 // 다이얼로그 닫기
                 showAddCategoryDialog = false
             }
@@ -184,7 +170,7 @@ fun AddExpenseScreen(
 
 
         // 카테고리 데이터 가져오기
-    val categories by viewModel.allCategories.observeAsState(emptyList())
+    val categories by viewModel.allExpenseCategories.observeAsState(emptyList())
 
     Scaffold(
         topBar = {
@@ -227,6 +213,11 @@ fun AddExpenseScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+
                 ) {
                     Column(
                         modifier = Modifier
@@ -247,7 +238,7 @@ fun AddExpenseScreen(
                 }
             }
 
-// 날짜 선택 (별도 item)
+// 날짜 선택
             item {
                 Card(
                     modifier = Modifier
@@ -255,7 +246,7 @@ fun AddExpenseScreen(
                         .height(120.dp)
                         .clickable { uiState = uiState.copy(showDatePicker = true) },
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        containerColor = MaterialTheme.colorScheme.surface,
                     )
                 ) {
                     Column(
@@ -267,19 +258,20 @@ fun AddExpenseScreen(
                         Text(
                             text = "날짜",
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         Text(
                             text = SimpleDateFormat("MM/dd", Locale.KOREA).format(Date(uiState.selectedDate)),
                             style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         Text(
                             text = SimpleDateFormat("yyyy년", Locale.KOREA).format(Date(uiState.selectedDate)),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -362,7 +354,7 @@ private fun MainInfoCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+            containerColor = MaterialTheme.colorScheme.surface,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -404,7 +396,7 @@ private fun ImageSectionCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         if (selectedImageUri != null) {

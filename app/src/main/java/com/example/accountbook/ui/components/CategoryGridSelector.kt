@@ -13,11 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.accountbook.model.Category
+import com.example.accountbook.model.ExpenseCategory
 
 /**
  * 카테고리를 3×N 그리드 형태로 선택할 수 있는 컴포넌트
@@ -30,7 +29,7 @@ import com.example.accountbook.model.Category
  */
 @Composable
 fun CategoryGridSelector(
-    categories: List<Category>,
+    categories: List<ExpenseCategory>,
     selectedCategoryId: Long?,
     onCategorySelected: (Long?) -> Unit,
     onAddNewCategory: () -> Unit,
@@ -42,7 +41,8 @@ fun CategoryGridSelector(
             text = "카테고리 선택",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(bottom = 12.dp)
+            modifier = Modifier.padding(bottom = 12.dp),
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         // 카테고리 그리드
@@ -60,7 +60,7 @@ fun CategoryGridSelector(
  */
 @Composable
 fun CategoryGrid(
-    categories: List<Category>,
+    categories: List<ExpenseCategory>,
     selectedCategoryId: Long?,
     onCategorySelected: (Long?) -> Unit,
     onAddNewCategory: () -> Unit
@@ -98,7 +98,6 @@ fun CategoryGrid(
                                 CategoryGridItem(
                                     name = itemData.category.name,
                                     iconName = itemData.category.iconName,
-                                    colorHex = itemData.category.colorHex,
                                     isSelected = itemData.isSelected,
                                     onClick = { onCategorySelected(itemData.category.id) }
                                 )
@@ -125,7 +124,7 @@ fun CategoryGrid(
  */
 sealed class CategoryItemData {
     data class None(val isSelected: Boolean) : CategoryItemData()
-    data class Category(val category: com.example.accountbook.model.Category, val isSelected: Boolean) : CategoryItemData()
+    data class Category(val category: ExpenseCategory, val isSelected: Boolean) : CategoryItemData()
     object AddNew : CategoryItemData()
 }
 
@@ -139,32 +138,22 @@ sealed class CategoryItemData {
 fun CategoryGridItem(
     name: String,
     iconName: String?,
-    colorHex: String,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
     // 카테고리별 고유 색상을 파싱하여 아이콘과 강조 요소에 사용
     val MainColor = Color(0xFF5E69EE)
-    val categoryColor = try {
-        Color(android.graphics.Color.parseColor(colorHex))
-    } catch (e: Exception) {
-        MaterialTheme.colorScheme.primary // 파싱 실패시 시스템 기본 색상 사용
-    }
 
-    // Material Design 3의 surface 시스템을 활용한 자연스러운 배경색
     val backgroundColor = if (isSelected) {
-        // 선택시에는 카테고리 색상을 매우 미묘하게 블렌딩
         MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f)
     } else {
-        // 기본 상태에서는 시스템 표면 색상 사용
-        MaterialTheme.colorScheme.surfaceContainer
+        MaterialTheme.colorScheme.surface
     }
 
-    // 선택 상태는 카테고리 색상으로 미묘한 테두리 표현
     val borderColor = if (isSelected) {
         MainColor
     } else {
-        MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)  // 미선택시: 연한 회색
+        MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
     }
 
     Surface(
@@ -194,13 +183,11 @@ fun CategoryGridItem(
                 Text(
                     text = getIconEmoji(iconName),
                     fontSize = 16.sp, // 크기 조금 줄임
-                    color = if (isSelected) categoryColor else categoryColor.copy(alpha = 0.8f)
                 )
             } else {
                 Surface(
                     modifier = Modifier.size(16.dp), // 크기 줄임
                     shape = RoundedCornerShape(50),
-                    color = categoryColor.copy(alpha = 0.2f)
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
@@ -209,8 +196,7 @@ fun CategoryGridItem(
                         Text(
                             text = name.take(1),
                             fontSize = 8.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = categoryColor
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -233,6 +219,8 @@ fun CategoryGridItem(
     }
 }
 
+
+
 /**
  * 새 카테고리 추가 버튼 아이템
  *
@@ -246,7 +234,7 @@ fun AddNewCategoryItem(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(2.5f) // 다른 카테고리들과 동일한 정사각형 비율
+            .aspectRatio(2.5f)
             .border(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), // 미묘한 테두리
@@ -254,7 +242,7 @@ fun AddNewCategoryItem(
             )
             .clip(RoundedCornerShape(8.dp))
             .clickable { onClick() },
-        color = MaterialTheme.colorScheme.surfaceContainer, // 시스템 표면 색상 사용
+        color = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp
     ) {
         Column(
@@ -290,9 +278,6 @@ fun AddNewCategoryItem(
     }
 }
 
-/**
- * 아이콘 이름 -> 이모지로 변환
- */
 fun getIconEmoji(iconName: String): String {
     return when (iconName) {
         "restaurant" -> "🍽️"

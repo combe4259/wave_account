@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import com.example.accountbook.ui.theme.MainColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +36,7 @@ fun DailyExpenseScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAdd: (Long) -> Unit
 ) {
+
     val allExpensesWithCategory by viewModel.allExpensesWithCategory.observeAsState(emptyList())
 
     //팝업창 관리
@@ -44,6 +46,29 @@ fun DailyExpenseScreen(
     val dailyExpenses = remember(allExpensesWithCategory, selectedDate) {
         filterExpensesByDate(allExpensesWithCategory, selectedDate)
     }
+
+    //삭제 확인 다이얼로그 상태 관리
+    var expenseToDelete by remember { mutableStateOf<ExpenseWithCategory?>(null) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+
+
+    // DailyExpenseScreen 내부에 추가할 헬퍼 함수
+    fun requestDeleteExpense(expense: ExpenseWithCategory) {
+        expenseToDelete = expense
+        showDeleteConfirmDialog = true
+    }
+
+    // 실제 삭제를 수행하는 함수
+    fun confirmDeleteExpense() {
+        expenseToDelete?.let { expense ->
+            viewModel.deleteExpense(expense.toExpense())
+        }
+        // 상태 초기화
+        expenseToDelete = null
+        showDeleteConfirmDialog = false
+        selectedExpenseForDetail = null // 상세보기가 열려있다면 닫기
+    }
+
 
     val dateFormat = SimpleDateFormat("yyyy년 MM월 dd일 (E)", Locale.KOREA)
     val totalDailyExpense = dailyExpenses.sumOf { it.amount }
@@ -93,7 +118,8 @@ fun DailyExpenseScreen(
                     expenses = dailyExpenses,
                     onDeleteExpense = { expense ->
                         // ExpenseWithCategory를 Expense로 변환해서 전달
-                        viewModel.deleteExpense(expense.toExpense())
+                        //viewModel.deleteExpense(expense.toExpense())
+                        requestDeleteExpense(expense)
                     },
                     onExpenseClick = { expense ->
                         selectedExpenseForDetail = expense
@@ -102,17 +128,30 @@ fun DailyExpenseScreen(
             }
         }
 
+
         selectedExpenseForDetail?.let { expense ->
             ExpenseDetailDialog(
                 expense = expense,
                 onDismiss = { selectedExpenseForDetail = null },
                 onDelete = {
-                    viewModel.deleteExpense(expense.toExpense())
-                    selectedExpenseForDetail = null
+                    requestDeleteExpense(expense)
+                }
+            )
+        }
+        if (showDeleteConfirmDialog && expenseToDelete != null) {
+            DeleteConfirmDialog(
+                expenseName = expenseToDelete!!.productName,
+                onConfirm = {
+                    confirmDeleteExpense()
+                },
+                onDismiss = {
+                    expenseToDelete = null
+                    showDeleteConfirmDialog = false
                 }
             )
         }
     }
+
 }
 
 @Composable
@@ -123,7 +162,8 @@ fun DailySummaryCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+         //   containerColor = MaterialTheme.colorScheme.primaryContainer
+            containerColor = MainColor.copy(alpha = 0.1f)
         )
     ) {
         Row(
@@ -240,7 +280,7 @@ fun ExpenseDetailDialog(
                     value = expense.productName
                 )
 
-                // 카테고리 (실제 이름 표시!)
+                // 카테고리
                 DetailRow(
                     label = "카테고리",
                     value = expense.categoryName ?: "카테고리 없음"
@@ -303,7 +343,7 @@ fun ExpenseDetailDialog(
 
 @Composable
 fun DailyExpenseItem(
-    expense: ExpenseWithCategory, // 타입 변경!
+    expense: ExpenseWithCategory,
     onDelete: () -> Unit,
     onClick: () -> Unit
 ) {
@@ -312,6 +352,9 @@ fun DailyExpenseItem(
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
         onClick = onClick
     ) {
         Row(
@@ -326,7 +369,6 @@ fun DailyExpenseItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // 카테고리 아이콘 추가!
                 expense.iconName?.let { iconName ->
                     Text(
                         text = getIconEmoji(iconName),
@@ -345,7 +387,6 @@ fun DailyExpenseItem(
 
                     Spacer(modifier = Modifier.height(2.dp))
 
-                    // 카테고리 이름 추가!
                     Text(
                         text = expense.categoryName ?: "카테고리 없음",
                         style = MaterialTheme.typography.bodySmall,
@@ -423,7 +464,7 @@ fun filterExpensesByDate(allExpensesWithCategory: List<ExpenseWithCategory>, tar
     }.sortedByDescending { it.date }
 }
 
-// 아이콘 이모지 함수 추가!
+// 아이콘 이모지 함수
 private fun getIconEmoji(iconName: String): String {
     return when (iconName) {
         "restaurant" -> "🍽️"
@@ -454,3 +495,66 @@ fun ExpenseWithCategory.toExpense() = com.example.accountbook.model.Expense(
     date = this.date,
     photoUri = this.photoUri
 )
+
+@Composable
+fun DeleteConfirmDialog(
+    expenseName: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "지출 내역 삭제",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "다음 지출 내역을 삭제하시겠습니까?",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 삭제할 항목명을 강조하여 표시
+                Text(
+                    text = "\"$expenseName\"",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "삭제된 내역은 복구할 수 없습니다.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text(
+                    text = "삭제",
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("취소")
+            }
+        }
+    )
+}
+

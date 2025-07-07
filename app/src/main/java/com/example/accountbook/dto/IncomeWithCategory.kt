@@ -1,12 +1,13 @@
 package com.example.accountbook.dto
 
-data class ExpenseWithCategory(
+data class IncomeWithCategory(
     val id: Long,
-    val productName: String,
+    val description: String,
     val amount: Double,
     val categoryId: Long?,
     val date: Long,
-    val photoUri: String?,
     val categoryName: String?,
-    val iconName: String?
+    val iconName: String?,
+
 )
+

@@ -32,13 +32,12 @@ import androidx.compose.ui.window.Dialog
 @Composable
 fun AddCategoryDialog(
     onDismiss: () -> Unit,
-    onConfirm: (name: String, iconName: String, colorHex: String) -> Unit,
+    onConfirm: (name: String, iconName: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     // 다이얼로그 상태 관리
     var categoryName by remember { mutableStateOf("") }
     var selectedIcon by remember { mutableStateOf("more_horiz") }
-    var selectedColor by remember { mutableStateOf("#2196F3") }
 
     // 유효성 검사
     val isNameValid = categoryName.trim().isNotEmpty()
@@ -71,8 +70,7 @@ fun AddCategoryDialog(
                 // 미리보기 섹션
                 CategoryPreview(
                     name = categoryName.ifEmpty { "카테고리 이름" },
-                    iconName = selectedIcon,
-                    colorHex = selectedColor
+                    iconName = selectedIcon
                 )
 
                 // 카테고리 이름 입력
@@ -88,18 +86,12 @@ fun AddCategoryDialog(
                     onIconSelected = { selectedIcon = it }
                 )
 
-                // 색상 선택 섹션
-                ColorSelectionSection(
-                    selectedColor = selectedColor,
-                    onColorSelected = { selectedColor = it }
-                )
-
                 // 버튼 영역
                 DialogButtons(
                     canConfirm = canConfirm,
                     onDismiss = onDismiss,
                     onConfirm = {
-                        onConfirm(categoryName.trim(), selectedIcon, selectedColor)
+                        onConfirm(categoryName.trim(), selectedIcon)
                     }
                 )
             }
@@ -113,14 +105,8 @@ fun AddCategoryDialog(
 @Composable
 private fun CategoryPreview(
     name: String,
-    iconName: String,
-    colorHex: String
+    iconName: String
 ) {
-    val backgroundColor = try {
-        Color(android.graphics.Color.parseColor(colorHex))
-    } catch (e: Exception) {
-        MaterialTheme.colorScheme.surfaceVariant
-    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -135,7 +121,7 @@ private fun CategoryPreview(
         Card(
             modifier = Modifier.size(80.dp),
             colors = CardDefaults.cardColors(
-                containerColor = backgroundColor.copy(alpha = 0.7f)
+                containerColor = MaterialTheme.colorScheme.surface
             ),
             shape = RoundedCornerShape(12.dp)
         ) {
@@ -275,85 +261,6 @@ private fun IconOption(
     }
 }
 
-/**
- * 색상 선택 섹션
- *
- * 미리 정의된 색상 팔레트에서 카테고리 색상을 선택할 수 있습니다.
- * 각 색상은 가계부 앱에서 사용하기 적합한 색상들로 구성되어 있습니다.
- */
-@Composable
-private fun ColorSelectionSection(
-    selectedColor: String,
-    onColorSelected: (String) -> Unit
-) {
-    val availableColors = listOf(
-        "#FF5722", "#E91E63", "#9C27B0", "#673AB7",
-        "#3F51B5", "#2196F3", "#03A9F4", "#00BCD4",
-        "#009688", "#4CAF50", "#8BC34A", "#CDDC39",
-        "#FFEB3B", "#FFC107", "#FF9800", "#FF5722",
-        "#795548", "#9E9E9E", "#607D8B", "#000000"
-    )
-
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = "색상 선택",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Medium
-        )
-
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(5),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.height(100.dp)
-        ) {
-            items(availableColors) { colorHex ->
-                ColorOption(
-                    colorHex = colorHex,
-                    isSelected = selectedColor == colorHex,
-                    onClick = { onColorSelected(colorHex) }
-                )
-            }
-        }
-    }
-}
-
-/**
- * 개별 색상 선택 옵션
- */
-@Composable
-private fun ColorOption(
-    colorHex: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val color = try {
-        Color(android.graphics.Color.parseColor(colorHex))
-    } catch (e: Exception) {
-        MaterialTheme.colorScheme.surfaceVariant
-    }
-
-    val borderColor = if (isSelected) {
-        MaterialTheme.colorScheme.onSurface
-    } else {
-        Color.Gray.copy(alpha = 0.3f)
-    }
-
-    Box(
-        modifier = Modifier
-            .size(32.dp)
-            .border(
-                width = if (isSelected) 3.dp else 1.dp,
-                color = borderColor,
-                shape = CircleShape
-            )
-            .background(
-                color = color,
-                shape = CircleShape
-            )
-            .clickable { onClick() }
-    )
-}
 
 /**
  * 다이얼로그 버튼 - 취소, 추가

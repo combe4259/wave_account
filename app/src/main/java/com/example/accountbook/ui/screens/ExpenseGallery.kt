@@ -43,30 +43,40 @@ fun ExpenseGalleryScreen(
     onNavigateBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    // ExpenseGalleryViewModel을 다시 사용
-    val galleryViewModel: ExpenseGalleryViewModel = viewModel {
-        ExpenseGalleryViewModel(viewModel.expenseRepository)
+    // ExpenseViewModel의 LiveData를 직접 관찰합니다
+    val expensesWithImages by viewModel.expensesWithPhotosAndCategory.observeAsState(emptyList())
+
+    // 갤러리 화면의 로컬 상태를 Compose로 관리합니다
+    var isLoading by remember { mutableStateOf(true) }
+    var selectedExpense by remember { mutableStateOf<ExpenseWithCategory?>(null) }
+    var showDetailDialog by remember { mutableStateOf(false) }
+
+    // 데이터가 로드되면 로딩 상태를 해제합니다
+    LaunchedEffect(expensesWithImages) {
+        isLoading = false
     }
 
-    val uiState by galleryViewModel.uiState.observeAsState(initial = GalleryUiState())
-
     GalleryContent(
-        uiState = uiState,
+        isLoading = isLoading,
+        expensesWithImages = expensesWithImages,
         onImageClick = { expense ->
-            galleryViewModel.showImageDetail(expense)
+            selectedExpense = expense
+            showDetailDialog = true
         },
         onRefresh = {
-            galleryViewModel.refreshGallery()
+            // 필요하다면 여기서 새로고침 로직을 추가할 수 있습니다
+            isLoading = true
         },
         modifier = modifier
     )
 
     // 상세보기 다이얼로그
-    if (uiState.showDetailDialog && uiState.selectedExpense != null) {
+    if (showDetailDialog && selectedExpense != null) {
         ExpenseDetailDialog(
-            expense = uiState.selectedExpense!!,
+            expense = selectedExpense!!,
             onDismiss = {
-                galleryViewModel.hideImageDetail()
+                selectedExpense = null
+                showDetailDialog = false
             }
         )
     }
@@ -74,10 +84,12 @@ fun ExpenseGalleryScreen(
 
 /**
  * 갤러리의 메인 컨텐츠
+ * 이제 개별 매개변수들을 받아서 처리하도록 변경되었습니다
  */
 @Composable
 private fun GalleryContent(
-    uiState: GalleryUiState,
+    isLoading: Boolean,  // GalleryUiState 대신 개별 매개변수들을 받습니다
+    expensesWithImages: List<ExpenseWithCategory>,
     onImageClick: (ExpenseWithCategory) -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier
@@ -86,7 +98,7 @@ private fun GalleryContent(
         modifier = modifier.fillMaxSize()
     ) {
         when {
-            uiState.isLoading -> {
+            isLoading -> {
                 Column(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -101,7 +113,7 @@ private fun GalleryContent(
                 }
             }
 
-            uiState.expensesWithImages.isEmpty() -> {
+            expensesWithImages.isEmpty() -> {  // 직접 매개변수를 사용합니다
                 EmptyGalleryState(
                     modifier = Modifier.align(Alignment.Center)
                 )
@@ -110,12 +122,12 @@ private fun GalleryContent(
             else -> {
                 Column {
                     GalleryHeader(
-                        imageCount = uiState.expensesWithImages.size,
+                        imageCount = expensesWithImages.size,  // 직접 매개변수를 사용합니다
                         modifier = Modifier.padding(16.dp)
                     )
 
                     ImageGrid(
-                        expenses = uiState.expensesWithImages,
+                        expenses = expensesWithImages,  // 직접 매개변수를 사용합니다
                         onImageClick = onImageClick,
                         modifier = Modifier.fillMaxSize()
                     )

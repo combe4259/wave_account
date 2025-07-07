@@ -33,9 +33,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.accountbook.ui.screens.*
 
 class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(savedInstanceState: Bundle?) { //이 시점에서 앱의 기본 설정과 UI 구성이 이루어짐
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge() // 전체화면 활용으로 몰입감 있는 경험 제공
+        enableEdgeToEdge() // 전체화면 활용
         setContent {
             AccountBookTheme {
                 AccountBookApp()
@@ -44,6 +44,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+
+//앱의 모든 화면 관리
 sealed class Screen(val route: String, val icon: ImageVector, val title: String) {
     object Calendar : Screen("calendar", Icons.Default.DateRange, "가계부")
     object Gallery : Screen("gallery", Icons.Default.Star, "갤러리")
