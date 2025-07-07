@@ -157,11 +157,13 @@ fun CategoryGridItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    // 카테고리별 고유 색상을 파싱하여 아이콘과 강조 요소에 사용
-    val categoryColor = try {
-        Color(android.graphics.Color.parseColor(colorHex))
-    } catch (e: Exception) {
-        MaterialTheme.colorScheme.primary // 파싱 실패시 시스템 기본 색상 사용
+
+    val MainColor = Color(0xFF5E69EE)
+
+    val backgroundColor = if (isSelected) {
+        Color.White
+    } else {
+        Color.White
     }
 
     // Material Design 3의 surface 시스템을 활용한 자연스러운 배경색
@@ -201,26 +203,21 @@ fun CategoryGridItem(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // 아이콘 영역 - 모든 카테고리에 일관된 공간 할당
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .padding(bottom = 6.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                if (iconName != null) {
-                    // 아이콘이 있는 경우, 카테고리 색상으로 표시하여 개성 부여
-                    Text(
-                        text = getIconEmoji(iconName),
-                        fontSize = 20.sp,
-                        color = if (isSelected) categoryColor else categoryColor.copy(alpha = 0.8f)
-                    )
-                } else {
-                    // 아이콘이 없는 경우, 카테고리 색상의 원형 배경에 첫 글자 표시
-                    Surface(
-                        modifier = Modifier.size(20.dp),
-                        shape = RoundedCornerShape(50),
-                        color = categoryColor.copy(alpha = 0.2f)
+            // 아이콘 부분
+            if (iconName != null) {
+                Text(
+                    text = getIconEmoji(iconName),
+                    fontSize = 16.sp, // 크기 조금 줄임
+                )
+            } else {
+                Surface(
+                    modifier = Modifier.size(16.dp), // 크기 줄임
+                    shape = RoundedCornerShape(50),
+                    color = Color.White
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
@@ -255,8 +252,6 @@ fun CategoryGridItem(
 /**
  * 새 카테고리 추가 버튼 아이템
  *
- * 기존 카테고리들과 일관된 Material Design 색상 시스템을 사용하면서
- * 사용자가 새 카테고리를 추가할 수 있음을 직관적으로 표현합니다
  */
 @Composable
 fun AddNewCategoryItem(
@@ -273,7 +268,7 @@ fun AddNewCategoryItem(
             )
             .clip(RoundedCornerShape(8.dp))
             .clickable { onClick() },
-        color = MaterialTheme.colorScheme.surfaceContainer, // 시스템 표면 색상 사용
+        color = Color.White,
         tonalElevation = 0.dp
     ) {
         Column(
@@ -283,7 +278,7 @@ fun AddNewCategoryItem(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // 아이콘 영역 - 기존 카테고리들과 동일한 공간 할당
+            // 아이콘 영역
             Box(
                 modifier = Modifier
                     .size(28.dp)
@@ -301,7 +296,7 @@ fun AddNewCategoryItem(
             Text(
                 text = "추가",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface, // 시스템 텍스트 색상
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Normal,
                 fontSize = 11.sp
             )

@@ -414,6 +414,8 @@ fun ExpenseStatisticsScreen(modifier: Modifier = Modifier) {
     var currentMonth by remember { mutableStateOf(Calendar.getInstance()) }
     Column (
         modifier = modifier
+            //Fixme
+            //.background(MaterialTheme.colorScheme.secondary)
             .fillMaxSize()
             .padding(16.dp),         // outer padding around the whole stack
         verticalArrangement = Arrangement.spacedBy(12.dp) // space between charts

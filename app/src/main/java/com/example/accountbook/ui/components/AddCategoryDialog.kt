@@ -53,7 +53,7 @@ fun AddCategoryDialog(
                 .padding(16.dp),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = Color.White,
             )
         ) {
             Column(
@@ -140,7 +140,8 @@ private fun CategoryPreview(
         Card(
             modifier = Modifier.size(80.dp),
             colors = CardDefaults.cardColors(
-                containerColor = backgroundColor.copy(alpha = 0.7f)
+                containerColor = Color.White,
+
             ),
             shape = RoundedCornerShape(12.dp)
         ) {

@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.ui.graphics.Color
 import com.example.accountbook.view.ExpenseViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.accountbook.ui.screens.*
@@ -35,7 +36,7 @@ import com.example.accountbook.ui.screens.*
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge() // 전체화면 활용으로 몰입감 있는 경험 제공
+        enableEdgeToEdge() // 전체화면 활용
         setContent {
             AccountBookTheme {
                 AccountBookApp()
@@ -70,11 +71,11 @@ val bottomNavItems = listOf(
 fun AccountBookApp() {
     // 화면 상태를 중앙에서 관리하여 예측 가능한 네비게이션 제공
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Calendar) }
-
-    // ViewModel을 앱 레벨에서 생성하여 모든 화면에서 동일한 인스턴스 사용
+    // ViewModel을 앱 레벨에서 생성 -> 모든 화면에서 동일한 인스턴스 사용
     val viewModel: ExpenseViewModel = viewModel()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.onPrimary,
         topBar = {
             AppTopBar(
                 currentScreen = currentScreen,
@@ -99,7 +100,7 @@ fun AccountBookApp() {
     }
 }
 
-// TopBar 로직을 별도 컴포넌트로 분리하여 재사용성과 테스트 용이성 향상
+// TopBar
 @Composable
 private fun AppTopBar(
     currentScreen: Screen,
@@ -110,14 +111,14 @@ private fun AppTopBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(64.dp),
-            color = MaterialTheme.colorScheme.primaryContainer,
+            color = MaterialTheme.colorScheme.primary,
             tonalElevation = 4.dp
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterStart
+                contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = currentScreen.title,
@@ -130,7 +131,7 @@ private fun AppTopBar(
     }
 }
 
-// BottomBar 로직을 분리하여 네비게이션 관련 코드를 명확하게 구분
+// BottomBar
 @Composable
 private fun AppBottomBar(
     currentScreen: Screen,
@@ -139,7 +140,7 @@ private fun AppBottomBar(
 ) {
     if (shouldShowBottomBar) {
         NavigationBar(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            containerColor = Color.White,
             tonalElevation = 3.dp
         ) {
             bottomNavItems.forEach { screen ->
@@ -181,7 +182,7 @@ private fun AppBottomBar(
     }
 }
 
-// 메인 콘텐츠 네비게이션 로직을 별도로 분리하여 코드 가독성 향상
+// 메인 콘텐츠 네비게이션 로직
 @Composable
 private fun AppContent(
     currentScreen: Screen,
@@ -223,7 +224,7 @@ private fun AppContent(
                     viewModel = viewModel,
                     modifier = Modifier.fillMaxSize(),
                     onNavigateBack = {
-                        // 논리적으로 명확한 네비게이션: 상세 화면에서 달력으로 복귀
+                        // 상세 화면에서 달력으로 복귀
                         onNavigateToScreen(Screen.Calendar)
                     },
                     onNavigateToAdd = { date ->
@@ -239,7 +240,6 @@ private fun AppContent(
                     modifier = Modifier.fillMaxSize(),
                     onNavigateBack = {
                         // 지출 추가 완료 후 적절한 화면으로 복귀
-                        // 특정 날짜에서 온 경우 해당 날짜로, 아니면 달력으로
                         if (currentScreen.initialDate != null) {
                             onNavigateToScreen(Screen.DailyDetail(currentScreen.initialDate))
                         } else {
@@ -252,7 +252,7 @@ private fun AppContent(
     }
 }
 
-// 유틸리티 함수들을 통해 복잡한 조건 로직을 명확하게 추상화
+//조건 로직
 private fun isDetailScreen(screen: Screen): Boolean {
     return screen is Screen.DailyDetail || screen is Screen.AddExpense
 }

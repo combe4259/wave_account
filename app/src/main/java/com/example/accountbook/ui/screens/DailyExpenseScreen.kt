@@ -23,6 +23,7 @@ import java.util.*
 import coil.compose.AsyncImage
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 
@@ -54,6 +55,7 @@ fun DailyExpenseScreen(
     val totalDailyExpense = dailyExpenses.sumOf { it.amount }
 
     Scaffold(
+        containerColor = Color.White,
         topBar = {
             TopAppBar(
                 title = {
@@ -63,14 +65,23 @@ fun DailyExpenseScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = Color.Black,
+                    navigationIconContentColor = Color.Black
+                )
             )
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { onNavigateToAdd(selectedDate) }
+                onClick = { onNavigateToAdd(selectedDate) },
+                containerColor = MaterialTheme.colorScheme.primary
+
             ) {
-                Icon(Icons.Default.Add, contentDescription = "지출 추가")
+                Icon(Icons.Default.Add,
+                    contentDescription = "지출 추가",
+                    tint = MaterialTheme.colorScheme.onPrimary)
             }
         }
     ) { paddingValues ->
@@ -128,7 +139,7 @@ fun DailySummaryCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+            containerColor = Color.White
         )
     ) {
         Row(
@@ -249,11 +260,110 @@ fun DailyExpenseList(
 //        }
 //    }
 
-    @Composable
-    fun DailyExpenseItem(
-        expense: Expense,
-        onDelete: () -> Unit,
-        onClick: () -> Unit
+
+@Composable
+fun ExpenseDetailDialog(
+    expense: ExpenseWithCategory, // 타입 변경!
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val dateFormat = SimpleDateFormat("yyyy년 MM월 dd일 HH:mm", Locale.KOREA)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "지출 상세 정보",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // 상품명
+                DetailRow(
+                    label = "상품명",
+                    value = expense.productName
+                )
+
+                // 카테고리
+                DetailRow(
+                    label = "카테고리",
+                    value = expense.categoryName ?: "카테고리 없음"
+                )
+
+                // 금액
+                DetailRow(
+                    label = "금액",
+                    value = NumberFormat.getNumberInstance(Locale.KOREA)
+                        .format(expense.amount) + "원"
+                )
+
+                // 날짜
+                DetailRow(
+                    label = "날짜",
+                    value = dateFormat.format(Date(expense.date))
+                )
+
+                // 이미지 (있는 경우만)
+                expense.photoUri?.let { imagePath ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "첨부 이미지",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // 이미지 표시
+                    AsyncImage(
+                        model = imagePath,
+                        contentDescription = "지출 이미지",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(id = android.R.drawable.ic_menu_report_image),
+                        placeholder = painterResource(id = android.R.drawable.ic_menu_gallery)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("확인")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDelete,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text("삭제")
+            }
+        }
+    )
+}
+
+@Composable
+fun DailyExpenseItem(
+    expense: ExpenseWithCategory,
+    onDelete: () -> Unit,
+    onClick: () -> Unit
+) {
+    val timeFormat = SimpleDateFormat("HH:mm", Locale.KOREA)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        onClick = onClick
     ) {
         val timeFormat = SimpleDateFormat("HH:mm", Locale.KOREA)
 

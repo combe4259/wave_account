@@ -155,7 +155,9 @@ fun AddExpenseScreen(
     val categories by viewModel.allCategories.observeAsState(emptyList())
 
     Scaffold(
+        containerColor = Color.White,
         topBar = {
+            Color
             TopAppBar(
                 title = {
                     Text(
@@ -170,7 +172,12 @@ fun AddExpenseScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = Color.Black,
+                    navigationIconContentColor = Color.Black
+                )
             )
         }
     ) { paddingValues ->
@@ -195,6 +202,10 @@ fun AddExpenseScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White,
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -223,7 +234,7 @@ fun AddExpenseScreen(
                         .height(120.dp)
                         .clickable { uiState = uiState.copy(showDatePicker = true) },
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        containerColor =Color.White,
                     )
                 ) {
                     Column(
@@ -330,7 +341,7 @@ private fun MainInfoCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+            containerColor = Color.White
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -414,7 +425,7 @@ private fun ImageSectionCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = Color.White,
         )
     ) {
         if (selectedImageUri != null) {
