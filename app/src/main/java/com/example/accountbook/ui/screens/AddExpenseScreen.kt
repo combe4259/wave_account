@@ -1,8 +1,8 @@
 package com.example.accountbook.ui.screens
 
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult  // 추가!
-import androidx.activity.result.contract.ActivityResultContracts   // 추가!
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,19 +13,16 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-
+import com.example.accountbook.ui.components.CategoryGridSelector
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.accountbook.model.Expense
-import com.example.accountbook.model.Category
+import com.example.accountbook.model.ExpenseCategory
 import com.example.accountbook.view.ExpenseViewModel
 import java.text.SimpleDateFormat
 import java.util.*
-
-
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,8 +31,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import com.example.accountbook.ui.state.AddExpenseUiState
-
+import com.example.accountbook.dto.AddExpenseUiState
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Environment
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import com.example.accountbook.ui.components.AddCategoryDialog
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,6 +49,14 @@ fun AddExpenseScreen(
     onNavigateBack: () -> Unit,
     initialDate: Long? = null
 ) {
+
+    LaunchedEffect(initialDate) {
+        println("AddExpenseScreen - initialDate: ${initialDate}")
+        if (initialDate != null) {
+            println("Selected date: ${SimpleDateFormat("yyyy-MM-dd", Locale.KOREA).format(Date(initialDate))}")
+        }
+    }
+
     val context = LocalContext.current
 
     // 상태 관리
@@ -55,6 +67,45 @@ fun AddExpenseScreen(
             )
         )
     }
+    //카테고리 다이얼로그
+    var showAddCategoryDialog by remember { mutableStateOf(false) }
+    if (showAddCategoryDialog) {
+        AddCategoryDialog(
+            onDismiss = { showAddCategoryDialog = false },
+            onConfirm = { name, iconName->
+                // 새 카테고리 객체 생성
+                val newCategory = ExpenseCategory(
+                    name = name,
+                    iconName = iconName
+                )
+                // 카테고리 추가
+                viewModel.insertExpenseCategory(newCategory)
+                // 다이얼로그 닫기
+                showAddCategoryDialog = false
+            }
+        )
+    }
+
+
+    //임시 파일 생성
+    fun createTempImageFile(context: Context): Uri? {
+        return try {
+            val photoFile = File.createTempFile(
+                "photo_${System.currentTimeMillis()}",
+                ".jpg",
+                context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+            )
+
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                photoFile
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
     // 이미지 선택을 위한 Launcher
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -63,11 +114,63 @@ fun AddExpenseScreen(
             uiState = uiState.copy(selectedImageUri = uri)
         }
     }
-    //val permissionLauncher = rememberLauncherForActivityResult(...)
-    //val cameraLauncher = rememberLauncherForActivityResult(...)
+    //카메라 Launcher
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { isSuccess ->
+        if (isSuccess) {
+            // 촬영 성공시 임시 URI를 실제 URI로 설정
+            uiState = uiState.copy(
+                selectedImageUri = uiState.tempCameraUri,
+                tempCameraUri = null
+            )
+        } else {
+            // 촬영 실패시 임시 URI 제거
+            uiState = uiState.copy(tempCameraUri = null)
+        }
+    }
 
-    // 카테고리 데이터 가져오기
-    val categories by viewModel.allCategories.observeAsState(emptyList())
+    //권한 Launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // 권한이 허용되면 카메라 실행
+            createTempImageFile(context)?.let { uri ->
+                uiState = uiState.copy(tempCameraUri = uri)
+                cameraLauncher.launch(uri)
+            }
+        } else {
+            // 권한이 거부되면 다이얼로그 표시
+            uiState = uiState.copy(showPermissionDialog = true)
+        }
+    }
+    if (uiState.showPermissionDialog) {
+        PermissionDialog(
+            onDismiss = { uiState = uiState.copy(showPermissionDialog = false) }
+        )
+    }
+
+
+//카메라 실행
+        fun handleCameraClick() {
+            when (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)) {
+                PackageManager.PERMISSION_GRANTED -> {
+                    createTempImageFile(context)?.let { uri ->
+                        uiState = uiState.copy(tempCameraUri = uri)
+                        cameraLauncher.launch(uri)
+                    }
+                }
+                else -> {
+                    // 권한 요청
+                    permissionLauncher.launch(Manifest.permission.CAMERA)
+                }
+            }
+        }
+
+
+        // 카테고리 데이터 가져오기
+    val categories by viewModel.allExpenseCategories.observeAsState(emptyList())
 
     Scaffold(
         topBar = {
@@ -106,81 +209,70 @@ fun AddExpenseScreen(
                 )
             }
 
-            // 카테고리와 날짜 선택
+            // 카테고리 선택
             item {
-                Row(
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+
                 ) {
-                    // 카테고리 선택
-                    Card(
+                    Column(
                         modifier = Modifier
-                            .weight(1f)
-                            .height(120.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
+                            .fillMaxWidth()
+                            .padding(5.dp)
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "카테고리",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-
-                            CategorySelectorCompact(
-                                categories = categories,
-                                selectedCategoryId = uiState.selectedCategoryId,
-                                isExpanded = uiState.isExpanded,
-                                onCategorySelected = { categoryId ->
-                                    uiState = uiState.copy(selectedCategoryId = categoryId, isExpanded = false)
-                                },
-                                onExpandedChange = { expanded ->
-                                    uiState = uiState.copy(isExpanded = expanded)
-                                }
-                            )
-                        }
+                        CategoryGridSelector(
+                            categories = categories,
+                            selectedCategoryId = uiState.selectedCategoryId,
+                            onCategorySelected = { categoryId ->
+                                uiState = uiState.copy(selectedCategoryId = categoryId)
+                            },
+                            onAddNewCategory = {
+                                showAddCategoryDialog = true
+                            }
+                        )
                     }
+                }
+            }
 
-                    // 날짜 선택
-                    Card(
+// 날짜 선택
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .clickable { uiState = uiState.copy(showDatePicker = true) },
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    )
+                ) {
+                    Column(
                         modifier = Modifier
-                            .weight(1f)
-                            .height(120.dp)
-                            .clickable { uiState = uiState.copy(showDatePicker = true) },
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "날짜",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        Text(
+                            text = "날짜",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
 
-                            Text(
-                                text = SimpleDateFormat("MM/dd", Locale.KOREA).format(Date(uiState.selectedDate)),
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold
-                            )
+                        Text(
+                            text = SimpleDateFormat("MM/dd", Locale.KOREA).format(Date(uiState.selectedDate)),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
 
-                            Text(
-                                text = SimpleDateFormat("yyyy년", Locale.KOREA).format(Date(uiState.selectedDate)),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        Text(
+                            text = SimpleDateFormat("yyyy년", Locale.KOREA).format(Date(uiState.selectedDate)),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 }
             }
@@ -241,7 +333,7 @@ fun AddExpenseScreen(
         ImageOptionsDialog(
             onCameraClick = {
                 uiState = uiState.copy(showImageOptionsDialog = false)
-                // TODO: 카메라 기능
+                handleCameraClick()
             },
             onGalleryClick = {
                 uiState = uiState.copy(showImageOptionsDialog = false)
@@ -262,7 +354,7 @@ private fun MainInfoCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+            containerColor = MaterialTheme.colorScheme.surface,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -293,48 +385,7 @@ private fun MainInfoCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun CategorySelectorCompact(
-    categories: List<Category>,
-    selectedCategoryId: Long?,
-    isExpanded: Boolean,
-    onCategorySelected: (Long?) -> Unit,
-    onExpandedChange: (Boolean) -> Unit
-) {
-    val selectedCategory = categories.find { it.id == selectedCategoryId }
 
-    ExposedDropdownMenuBox(
-        expanded = isExpanded,
-        onExpandedChange = onExpandedChange
-    ) {
-        Text(
-            text = selectedCategory?.name ?: "선택하세요",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor()
-                .clickable { onExpandedChange(true) }
-        )
-
-        ExposedDropdownMenu(
-            expanded = isExpanded,
-            onDismissRequest = { onExpandedChange(false) }
-        ) {
-            DropdownMenuItem(
-                text = { Text("카테고리 없음") },
-                onClick = { onCategorySelected(null) }
-            )
-
-            categories.forEach { category ->
-                DropdownMenuItem(
-                    text = { Text(category.name) },
-                    onClick = { onCategorySelected(category.id) }
-                )
-            }
-        }
-    }
-}
 
 @Composable
 private fun ImageSectionCard(
@@ -345,7 +396,7 @@ private fun ImageSectionCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         if (selectedImageUri != null) {
@@ -442,6 +493,22 @@ private fun ImageOptionsDialog(
                 ) {
                     Text("갤러리에서 선택")
                 }
+            }
+        }
+    )
+}
+
+@Composable
+private fun PermissionDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("카메라 권한 필요") },
+        text = {
+            Text("사진을 촬영하려면 카메라 권한이 필요합니다. 설정에서 권한을 허용해주세요.")
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("확인")
             }
         }
     )

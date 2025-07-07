@@ -1,15 +1,21 @@
 package com.example.accountbook.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.*
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -19,62 +25,326 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.accountbook.model.Expense
+import com.example.accountbook.dto.DayInfo
+import com.example.accountbook.dto.ExpenseWithCategory
+import com.example.accountbook.dto.MonthlyExpenseData
+import com.example.accountbook.ui.theme.MainColor
 import com.example.accountbook.view.ExpenseViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
-//달력 메인 구현
+// 달력 메인 구현
 @Composable
-fun CalendarMainScreen(viewModel: ExpenseViewModel, modifier: Modifier = Modifier, onDateSelected: (Long) -> Unit) {
-    val expenses by viewModel.allExpenses.observeAsState(emptyList())
+fun CalendarMainScreen(
+    viewModel: ExpenseViewModel,
+    modifier: Modifier = Modifier,
+    onDateSelected: (Long) -> Unit
+) {
+    val expensesWithCategory by viewModel.allExpensesWithCategory.observeAsState(emptyList())
     var currentMonth by remember { mutableStateOf(Calendar.getInstance()) }
+    var selectedTab by remember { mutableStateOf(0) } // 0: 달력, 1: 일일
 
-    // 월별 지출 데이터 계산
-    val monthlyExpenses = remember(expenses, currentMonth) {
-        calculateMonthlyExpenses(expenses, currentMonth)
+    // 하나의 통합된 계산으로 모든 필요한 데이터 생성
+    // 이렇게 하면 두 탭에서 항상 동일한 데이터를 사용하게 됩니다
+    val monthlyData = remember(expensesWithCategory, currentMonth) {
+        calculateMonthlyExpenseData(expensesWithCategory, currentMonth)
     }
 
-    Column(modifier = modifier.padding(16.dp)) {
-        // 월 네비게이션 헤더
-        MonthNavigationHeader(
-            currentMonth = currentMonth,
-            onPreviousMonth = {
-                currentMonth = Calendar.getInstance().apply {
-                    time = currentMonth.time
-                    add(Calendar.MONTH, -1)
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    // 오늘 날짜로 지출 추가 화면 이동
+                    onDateSelected(System.currentTimeMillis())
                 }
-            },
-            onNextMonth = {
-                currentMonth = Calendar.getInstance().apply {
-                    time = currentMonth.time
-                    add(Calendar.MONTH, 1)
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "지출 추가"
+                )
+            }
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = modifier
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
+            // 월 네비게이션 헤더
+            MonthNavigationHeader(
+                currentMonth = currentMonth,
+                onPreviousMonth = {
+                    currentMonth = Calendar.getInstance().apply {
+                        time = currentMonth.time
+                        add(Calendar.MONTH, -1)
+                    }
+                },
+                onNextMonth = {
+                    currentMonth = Calendar.getInstance().apply {
+                        time = currentMonth.time
+                        add(Calendar.MONTH, 1)
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 탭 추가
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary
+            ) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 }
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(12.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("달력")
+                    }
+                }
+
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 }
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(12.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.List,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("일일")
+                    }
                 }
             }
-        )
 
-        Spacer(modifier = Modifier.height(16.dp))
+
+            // 탭 내용
+            when (selectedTab) {
+                0 -> {
+                    // 달력 탭 - 통합된 데이터 사용
+                    CalendarTabContent(
+                        monthlyData = monthlyData,
+                        onDateSelected = onDateSelected
+                    )
+                }
+
+                1 -> {
+                    // 일일 탭
+                    DailyListTabContent(
+                        monthlyData = monthlyData,
+                        onExpenseClick = { expense ->
+                            onDateSelected(expense.date)
+                        },
+                        onDeleteExpense = { expense ->
+                            viewModel.deleteExpense(expense.toExpense())
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+// 공통 월별 요약 컴포넌트
+@Composable
+fun CommonMonthSummaryCard(
+    totalAmount: Double,
+    containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    onContainerColor: Color = MaterialTheme.colorScheme.onPrimaryContainer
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            //containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MainColor.copy(alpha = 0.1f)
+
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "이번 달 지출",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Text(
+                text = NumberFormat.getNumberInstance(Locale.KOREA).format(totalAmount) + "원",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+// 개선된 달력 탭 컨텐츠 - 통합된 데이터 구조 사용
+@Composable
+private fun CalendarTabContent(
+    monthlyData: MonthlyExpenseData,
+    onDateSelected: (Long) -> Unit
+) {
+    Column {
+        // 공통 요약 카드 사용
+        CommonMonthSummaryCard(
+            totalAmount = monthlyData.totalAmount
+        )
 
         // 요일 헤더
         WeekdayHeader()
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 달력 그리드
+        // 달력 그리드 - 기존 로직 유지하되 통합된 데이터 사용
         CalendarGrid(
-            currentMonth = currentMonth,
-            monthlyExpenses = monthlyExpenses,
+            currentMonth = monthlyData.month,
+            monthlyExpenses = monthlyData.dailyTotals,
             onDateClick = onDateSelected
         )
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        // 월간 총 지출 요약
-        MonthSummaryCard(monthlyExpenses = monthlyExpenses)
     }
 }
 
+// \ 일일 리스트 탭
+@Composable
+private fun DailyListTabContent(
+    monthlyData: MonthlyExpenseData,
+    onExpenseClick: (ExpenseWithCategory) -> Unit,
+    onDeleteExpense: (ExpenseWithCategory) -> Unit
+) {
+    if (monthlyData.allExpenses.isEmpty()) {
+        // 빈 상태 표시
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "이번 달에는 지출 내역이 없습니다",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    } else {
+        // 공통 요약 카드 사용 - 달력 탭과 완전히 동일한 표시
+        CommonMonthSummaryCard(
+            totalAmount = monthlyData.totalAmount
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // 날짜별로 그룹핑된 지출 목록
+        val groupedExpenses = monthlyData.allExpenses.groupBy { expense ->
+            SimpleDateFormat("dd", Locale.KOREA).format(Date(expense.date)).toInt()
+        }.toSortedMap(reverseOrder()) // 최신 날짜가 위로
+
+        // 날짜별 지출 목록
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            groupedExpenses.forEach { (day, dailyExpenses) ->
+                // 날짜 헤더
+                item {
+                    DayExpenseHeader(
+                        day = day,
+                        expenses = dailyExpenses
+                    )
+                }
+
+                // 해당 날짜의 지출들
+                items(dailyExpenses) { expense ->
+                    DailyExpenseItem(
+                        expense = expense,
+                        onClick = { onExpenseClick(expense) },
+                        onDelete = { onDeleteExpense(expense) }
+                    )
+                }
+
+                // 날짜 섹션 간 간격
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DayExpenseHeader(
+    day: Int,
+    expenses: List<ExpenseWithCategory>
+) {
+    val dayTotal = expenses.sumOf { it.amount }
+    val expenseCount = expenses.size
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "${day}일",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "(${expenseCount}건)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Text(
+                text = NumberFormat.getNumberInstance(Locale.KOREA).format(dayTotal) + "원",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+// 기존 컴포넌트들 유지
 @Composable
 fun MonthNavigationHeader(
     currentMonth: Calendar,
@@ -109,7 +379,7 @@ fun WeekdayHeader() {
     val weekdays = listOf("일", "월", "화", "수", "목", "금", "토")
 
     Row(modifier = Modifier.fillMaxWidth()) {
-        weekdays.forEach { day ->
+        weekdays.forEachIndexed { index, day ->
             Box(
                 modifier = Modifier.weight(1f),
                 contentAlignment = Alignment.Center
@@ -118,7 +388,11 @@ fun WeekdayHeader() {
                     text = day,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = when (index) {
+                        0 -> Color.Red  // 일요일 (첫 번째)
+                        6 -> Color.Red  // 토요일 (마지막)
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant  // 평일
+                    }
                 )
             }
         }
@@ -156,6 +430,13 @@ fun CalendarDay(
 ) {
     val isToday = isToday(dayInfo.date)
     val hasExpense = totalExpense > 0
+    // 주말 여부 판단 - 새로 추가된 부분
+    val isWeekendDay = isWeekend(dayInfo.date)
+
+    if (!dayInfo.isCurrentMonth) {
+        Box(modifier = Modifier.aspectRatio(1f))
+        return
+    }
 
     Card(
         modifier = Modifier
@@ -163,8 +444,7 @@ fun CalendarDay(
             .clickable { onDateClick(dayInfo.date) },
         colors = CardDefaults.cardColors(
             containerColor = when {
-                isToday -> MaterialTheme.colorScheme.primaryContainer
-                hasExpense -> MaterialTheme.colorScheme.secondaryContainer
+                hasExpense -> MaterialTheme.colorScheme.surface
                 else -> MaterialTheme.colorScheme.surface
             }
         ),
@@ -172,78 +452,85 @@ fun CalendarDay(
             defaultElevation = if (hasExpense) 2.dp else 1.dp
         )
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+        Box(
+            modifier = Modifier.fillMaxSize()
         ) {
-            Text(
-                text = if (dayInfo.isCurrentMonth) dayInfo.day.toString() else "",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                color = when {
-                    !dayInfo.isCurrentMonth -> Color.Transparent
-                    isToday -> MaterialTheme.colorScheme.onPrimaryContainer
-                    else -> MaterialTheme.colorScheme.onSurface
-                }
-            )
-
-            if (hasExpense && dayInfo.isCurrentMonth) {
-                Text(
-                    text = formatCurrency(totalExpense),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = 9.sp,
-                    textAlign = TextAlign.Center
+            // 오늘 날짜일 때 상단 바 색상
+            if (isToday) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(9.dp)
+                        .background(MainColor)
+                        .align(Alignment.TopCenter)
                 )
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = if (dayInfo.isCurrentMonth) dayInfo.day.toString() else "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                    color = when {
+                        !dayInfo.isCurrentMonth -> Color.Transparent
+                        isToday -> MainColor  // 오늘 날짜는 여전히 MainColor
+                        isWeekendDay -> Color.Red  // 주말은 빨간색으로 표시
+                        else -> MaterialTheme.colorScheme.onSurface  // 평일은 기본 색상
+                    }
+                )
+
+                if (hasExpense && dayInfo.isCurrentMonth) {
+                    Text(
+                        text = formatCurrency(totalExpense),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 9.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }
 }
 
-@Composable
-fun MonthSummaryCard(monthlyExpenses: Map<Int, Double>) {
-    val totalMonthExpense = monthlyExpenses.values.sum()
-    val expenseDays = monthlyExpenses.filter { it.value > 0 }.size
+// 월별 데이터를 한 번에 계산하는 통합 함수
+fun calculateMonthlyExpenseData(
+    expenses: List<ExpenseWithCategory>,
+    currentMonth: Calendar
+): MonthlyExpenseData {
+    val targetYear = currentMonth.get(Calendar.YEAR)
+    val targetMonth = currentMonth.get(Calendar.MONTH)
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "이번 달 총 지출",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Text(
-                text = NumberFormat.getNumberInstance(Locale.KOREA).format(totalMonthExpense) + "원",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "${expenseDays}일 지출 기록",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
+    // 해당 월의 지출만 필터링 (최신순 정렬)
+    val monthExpenses = expenses.filter { expense ->
+        val expenseDate = Calendar.getInstance().apply { timeInMillis = expense.date }
+        expenseDate.get(Calendar.YEAR) == targetYear &&
+                expenseDate.get(Calendar.MONTH) == targetMonth
+    }.sortedByDescending { it.date }
+
+    // 날짜별 총액 계산 (달력 표시용)
+    val dailyTotals = monthExpenses.groupBy { expense ->
+        val expenseDate = Calendar.getInstance().apply { timeInMillis = expense.date }
+        expenseDate.get(Calendar.DAY_OF_MONTH)
+    }.mapValues { (_, dayExpenses) ->
+        dayExpenses.sumOf { it.amount }
     }
-}
 
-// 데이터 클래스와 유틸리티 함수들
-data class DayInfo(
-    val day: Int,
-    val date: Long,
-    val isCurrentMonth: Boolean
-)
+    return MonthlyExpenseData(
+        totalAmount = monthExpenses.sumOf { it.amount },
+        expenseCount = monthExpenses.size,
+        expenseDays = dailyTotals.keys.size,
+        dailyTotals = dailyTotals,
+        allExpenses = monthExpenses,
+        month = currentMonth
+    )
+}
 
 fun getDaysInMonth(calendar: Calendar): List<DayInfo> {
     val result = mutableListOf<DayInfo>()
@@ -289,24 +576,6 @@ fun getDaysInMonth(calendar: Calendar): List<DayInfo> {
         }
         result.add(DayInfo(day, nextMonth.timeInMillis, false))
     }
-
-    return result
-}
-
-fun calculateMonthlyExpenses(expenses: List<Expense>, currentMonth: Calendar): Map<Int, Double> {
-    val result = mutableMapOf<Int, Double>()
-    val targetYear = currentMonth.get(Calendar.YEAR)
-    val targetMonth = currentMonth.get(Calendar.MONTH)
-
-    expenses.forEach { expense ->
-        val expenseDate = Calendar.getInstance().apply { timeInMillis = expense.date }
-        if (expenseDate.get(Calendar.YEAR) == targetYear &&
-            expenseDate.get(Calendar.MONTH) == targetMonth) {
-            val day = expenseDate.get(Calendar.DAY_OF_MONTH)
-            result[day] = (result[day] ?: 0.0) + expense.amount
-        }
-    }
-
     return result
 }
 
@@ -321,4 +590,10 @@ fun isToday(date: Long): Boolean {
 fun formatCurrency(amount: Double): String {
     val formatter = NumberFormat.getNumberInstance(Locale.KOREA)
     return formatter.format(amount.toInt())
+}
+
+fun isWeekend(date: Long): Boolean {
+    val calendar = Calendar.getInstance().apply { timeInMillis = date }
+    val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+    return dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY
 }

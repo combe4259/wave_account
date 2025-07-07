@@ -34,9 +34,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.graphics.alpha
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.accountbook.ui.theme.MainColor
 import com.example.accountbook.view.ExpenseViewModel
 import com.github.mikephil.charting.animation.Easing
 import com.github.mikephil.charting.charts.LineChart
@@ -54,8 +52,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Calendar
-import kotlin.random.Random
-import com.example.accountbook.ui.screens.MonthNavigationHeader
 import com.github.mikephil.charting.components.LimitLine
 import com.github.mikephil.charting.formatter.PercentFormatter
 import java.text.SimpleDateFormat

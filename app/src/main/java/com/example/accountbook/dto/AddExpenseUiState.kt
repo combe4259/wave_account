@@ -1,7 +1,6 @@
-package com.example.accountbook.ui.state
+package com.example.accountbook.dto
 
 import android.net.Uri
-
 
 data class AddExpenseUiState(
     val productName: String = "", //입력 상품명
