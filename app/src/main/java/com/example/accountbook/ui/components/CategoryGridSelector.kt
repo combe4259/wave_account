@@ -158,6 +158,12 @@ fun CategoryGridItem(
     onClick: () -> Unit
 ) {
 
+    val categoryColor = try {
+        Color(android.graphics.Color.parseColor(colorHex))
+    } catch (e: Exception) {
+        MaterialTheme.colorScheme.primary // 파싱 실패시 시스템 기본 색상 사용
+    }
+
     val MainColor = Color(0xFF5E69EE)
 
     val backgroundColor = if (isSelected) {
@@ -166,14 +172,6 @@ fun CategoryGridItem(
         Color.White
     }
 
-    // Material Design 3의 surface 시스템을 활용한 자연스러운 배경색
-    val backgroundColor = if (isSelected) {
-        // 선택시에는 카테고리 색상을 매우 미묘하게 블렌딩
-        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f)
-    } else {
-        // 기본 상태에서는 시스템 표면 색상 사용
-        MaterialTheme.colorScheme.surfaceContainer
-    }
 
     // 선택 상태는 카테고리 색상으로 미묘한 테두리 표현
     val borderColor = if (isSelected) {
@@ -203,21 +201,23 @@ fun CategoryGridItem(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // 아이콘 부분
-            if (iconName != null) {
-                Text(
-                    text = getIconEmoji(iconName),
-                    fontSize = 16.sp, // 크기 조금 줄임
-                )
-            } else {
-                Surface(
-                    modifier = Modifier.size(16.dp), // 크기 줄임
-                    shape = RoundedCornerShape(50),
-                    color = Color.White
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
+            // 아이콘 영역 - 모든 카테고리에 일관된 공간 할당
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .padding(bottom = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (iconName != null) {
+                    Text(
+                        text = getIconEmoji(iconName),
+                        fontSize = 16.sp, // 크기 조금 줄임
+                    )
+                } else {
+                    Surface(
+                        modifier = Modifier.size(16.dp), // 크기 줄임
+                        shape = RoundedCornerShape(50),
+                        color = Color.White
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,

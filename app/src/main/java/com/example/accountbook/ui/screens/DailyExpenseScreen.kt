@@ -351,7 +351,7 @@ fun ExpenseDetailDialog(
 
 @Composable
 fun DailyExpenseItem(
-    expense: ExpenseWithCategory,
+    : ExpenseWithCategory,expense
     onDelete: () -> Unit,
     onClick: () -> Unit
 ) {
