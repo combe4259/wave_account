@@ -232,9 +232,9 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
 //     * 새로운 소득 카테고리를 추가합니다
 
 //     */
-//    fun insertIncomeCategory(category: IncomeCategory) = viewModelScope.launch {
-//        incomeCategoryRepository.insertCategory(category)
-//    }
+    fun insertIncomeCategory(category: IncomeCategory) = viewModelScope.launch {
+        incomeCategoryRepository.insertCategory(category)
+    }
 
     /**
 

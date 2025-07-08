@@ -8,10 +8,12 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.*
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.*
@@ -23,16 +25,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.accountbook.dto.DayInfo
 import com.example.accountbook.dto.ExpenseWithCategory
-import com.example.accountbook.dto.MonthlyExpenseData
+import com.example.accountbook.dto.IncomeWithCategory
+import com.example.accountbook.model.Expense
+import com.example.accountbook.model.Income
+import com.example.accountbook.ui.components.getIconEmoji
 import com.example.accountbook.ui.theme.MainColor
 import com.example.accountbook.view.ExpenseViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
+
+// 수입/지출 통합 데이터 클래스
+data class MonthlyIncomeExpenseData(
+    val totalIncome: Double,
+    val totalExpense: Double,
+    val incomeCount: Int,
+    val expenseCount: Int,
+    val dailyIncomeTotals: Map<Int, Double>,
+    val dailyExpenseTotals: Map<Int, Double>,
+    val allIncomes: List<IncomeWithCategory>,
+    val allExpenses: List<ExpenseWithCategory>,
+    val month: Calendar
+)
 
 // 달력 메인 구현
 @Composable
@@ -43,22 +62,20 @@ fun CalendarMainScreen(
     onNavigateToAdd: ((Long) -> Unit)? = null
 ) {
     val expensesWithCategory by viewModel.allExpensesWithCategory.observeAsState(emptyList())
+    val incomesWithCategory by viewModel.allIncomesWithCategory.observeAsState(emptyList()) // 수입 데이터 추가
     var currentMonth by remember { mutableStateOf(Calendar.getInstance()) }
     var selectedTab by remember { mutableStateOf(0) } // 0: 달력, 1: 일일
 
-
-    //하나의 통합된 계산 -> 모든 필요한 데이터 생성
-    val monthlyData = remember(expensesWithCategory, currentMonth) {
-        calculateMonthlyExpenseData(expensesWithCategory, currentMonth)
+    // 수입과 지출을 함께 계산하는 통합 데이터
+    val monthlyData = remember(expensesWithCategory, incomesWithCategory, currentMonth) {
+        calculateMonthlyIncomeExpenseData(expensesWithCategory, incomesWithCategory, currentMonth)
     }
 
     Scaffold(
-
         containerColor = MaterialTheme.colorScheme.onPrimary,
         floatingActionButton = {
-
             FloatingActionButton(
-                onClick = {onDateSelected(System.currentTimeMillis()) },
+                onClick = { onDateSelected(System.currentTimeMillis()) },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(
@@ -89,7 +106,6 @@ fun CalendarMainScreen(
                         add(Calendar.MONTH, 1)
                     }
                 }
-
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -137,17 +153,15 @@ fun CalendarMainScreen(
                 }
             }
 
-
             // 탭 내용
             when (selectedTab) {
                 0 -> {
-                    // 달력 탭 - 통합된 데이터 사용
+                    // 달력 탭
                     CalendarTabContent(
                         monthlyData = monthlyData,
                         onDateSelected = onDateSelected
                     )
                 }
-
                 1 -> {
                     // 일일 탭
                     DailyListTabContent(
@@ -157,6 +171,12 @@ fun CalendarMainScreen(
                         },
                         onDeleteExpense = { expense ->
                             viewModel.deleteExpense(expense.toExpense())
+                        },
+                        onIncomeClick = { income ->
+                            onDateSelected(income.date)
+                        },
+                        onDeleteIncome = { income ->
+                            viewModel.deleteIncome(income.toIncome())
                         }
                     )
                 }
@@ -165,56 +185,93 @@ fun CalendarMainScreen(
     }
 }
 
-
-// 공통 월별 요약 컴포넌트
+// 수입/지출 통합 요약 카드
 @Composable
-fun CommonMonthSummaryCard(
-    totalAmount: Double,
-    containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
-    onContainerColor: Color = MaterialTheme.colorScheme.onPrimaryContainer
+fun IncomeExpenseSummaryCard(
+    totalIncome: Double,
+    totalExpense: Double
 ) {
+    val balance = totalIncome - totalExpense
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            //containerColor = MaterialTheme.colorScheme.surfaceVariant
             containerColor = Color.White
-
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Text(
-                text = "이번 달 지출",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            // 수입 섹션
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "수입",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = NumberFormat.getNumberInstance(Locale.KOREA).format(totalIncome) + "원",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Color(0xFFff4949)
+                )
+            }
 
-            Text(
-                text = NumberFormat.getNumberInstance(Locale.KOREA).format(totalAmount) + "원",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
+            // 지출 섹션
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "지출",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = NumberFormat.getNumberInstance(Locale.KOREA).format(totalExpense) + "원",
+                    style = MaterialTheme.typography.titleSmall,
+                    //color = Color(0xFFff4949)
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+
+            // 잔액 섹션
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "잔액",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = NumberFormat.getNumberInstance(Locale.KOREA).format(balance) + "원",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = if (balance >= 0) Color(0xFFff4949) else MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }
 
 
-// 달력 탭
+// 달력 탭 내용
 @Composable
 private fun CalendarTabContent(
-    monthlyData: MonthlyExpenseData,
+    monthlyData: MonthlyIncomeExpenseData,
     onDateSelected: (Long) -> Unit
 ) {
     Column {
-        // 공통 요약 카드 사용
-        CommonMonthSummaryCard(
-            totalAmount = monthlyData.totalAmount
+        // 수입/지출 통합 요약 카드 사용
+        IncomeExpenseSummaryCard(
+            totalIncome = monthlyData.totalIncome,
+            totalExpense = monthlyData.totalExpense
         )
 
         // 요일 헤더
@@ -222,10 +279,10 @@ private fun CalendarTabContent(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 달력 그리드 - 기존 로직 유지하되 통합된 데이터 사용
+        // 달력 그리드 (지출만 표시 - 기존 로직 유지)
         CalendarGrid(
             currentMonth = monthlyData.month,
-            monthlyExpenses = monthlyData.dailyTotals,
+            monthlyExpenses = monthlyData.dailyExpenseTotals,
             onDateClick = onDateSelected
         )
 
@@ -233,79 +290,104 @@ private fun CalendarTabContent(
     }
 }
 
-//  일일 리스트 탭
+// 일일 리스트 탭 내용
 @Composable
 private fun DailyListTabContent(
-    monthlyData: MonthlyExpenseData,
+    monthlyData: MonthlyIncomeExpenseData,
     onExpenseClick: (ExpenseWithCategory) -> Unit,
-    onDeleteExpense: (ExpenseWithCategory) -> Unit
+    onDeleteExpense: (ExpenseWithCategory) -> Unit,
+    onIncomeClick: (IncomeWithCategory) -> Unit,
+    onDeleteIncome: (IncomeWithCategory) -> Unit
 ) {
-    if (monthlyData.allExpenses.isEmpty()) {
-        // 빈 상태 표시
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "이번 달에는 지출 내역이 없습니다",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    } else {
-
-        // 공통 요약
-        CommonMonthSummaryCard(
-            totalAmount = monthlyData.totalAmount
+    Column {
+        // 수입/지출 통합 요약
+        IncomeExpenseSummaryCard(
+            totalIncome = monthlyData.totalIncome,
+            totalExpense = monthlyData.totalExpense
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 날짜별로 그룹핑된 지출 목록
-        val groupedExpenses = monthlyData.allExpenses.groupBy { expense ->
-            SimpleDateFormat("dd", Locale.KOREA).format(Date(expense.date)).toInt()
-        }.toSortedMap(reverseOrder())
+        if (monthlyData.allExpenses.isEmpty() && monthlyData.allIncomes.isEmpty()) {
+            // 빈 상태 표시
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "이번 달에는 수입/지출 내역이 없습니다",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else {
+            // 날짜별로 수입과 지출을 함께 그룹핑
+            val groupedData = (monthlyData.allExpenses + monthlyData.allIncomes)
+                .groupBy { item ->
+                    SimpleDateFormat("dd", Locale.KOREA).format(Date(
+                        when(item) {
+                            is ExpenseWithCategory -> item.date
+                            is IncomeWithCategory -> item.date
+                            else -> 0L
+                        }
+                    )).toInt()
+                }
+                .toSortedMap(reverseOrder())
 
-        // 날짜별 지출 목록
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            groupedExpenses.forEach { (day, dailyExpenses) ->
-                // 날짜 헤더
-                item {
-                    DayExpenseHeader(
-                        day = day,
-                        expenses = dailyExpenses
-                    )
-                }
-                // 해당 날짜의 지출들
-                items(dailyExpenses) { expense ->
-                    DailyExpenseItem(
-                        expense = expense,
-                        onClick = { onExpenseClick(expense) },
-                        onDelete = { onDeleteExpense(expense) }
-                    )
-                }
-                // 날짜 섹션 간 간격
-                item {
-                    Spacer(modifier = Modifier.height(4.dp))
+            // 날짜별 수입/지출 목록
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                groupedData.forEach { (day, dailyItems) ->
+                    // 날짜 헤더
+                    item {
+                        DayIncomeExpenseHeader(
+                            day = day,
+                            items = dailyItems
+                        )
+                    }
+                    // 해당 날짜의 수입/지출들
+                    items(dailyItems) { item ->
+                        when (item) {
+                            is ExpenseWithCategory -> {
+                                DailyExpenseItem(
+                                    expense = item,
+                                    onClick = { onExpenseClick(item) },
+                                    onDelete = { onDeleteExpense(item) }
+                                )
+                            }
+                            is IncomeWithCategory -> {
+                                DailyIncomeItem(
+                                    income = item,
+                                    onClick = { onIncomeClick(item) },
+                                    onDelete = { onDeleteIncome(item) }
+                                )
+                            }
+                        }
+                    }
+                    // 날짜 섹션 간 간격
+                    item {
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
                 }
             }
         }
     }
 }
 
+// 날짜별 수입/지출 헤더
 @Composable
-private fun DayExpenseHeader(
+private fun DayIncomeExpenseHeader(
     day: Int,
-    expenses: List<ExpenseWithCategory>
+    items: List<Any>
 ) {
-    val dayTotal = expenses.sumOf { it.amount }
-    val expenseCount = expenses.size
+    val dayIncome = items.filterIsInstance<IncomeWithCategory>().sumOf { it.amount }
+    val dayExpense = items.filterIsInstance<ExpenseWithCategory>().sumOf { it.amount }
+    val itemCount = items.size
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -317,33 +399,130 @@ private fun DayExpenseHeader(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Text(
+                text = "${day}일",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                if (dayIncome > 0) {
+                    Text(
+                        text = NumberFormat.getNumberInstance(Locale.KOREA).format(dayIncome) + "원",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFff4949)
+                    )
+                }
+                if (dayExpense > 0) {
+                    Text(
+                        text = NumberFormat.getNumberInstance(Locale.KOREA).format(dayExpense) + "원",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+
+            }
+        }
+    }
+}
+
+
+// 일일 수입 아이템
+@Composable
+fun DailyIncomeItem(
+    income: IncomeWithCategory,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                income.iconName?.let { iconName ->
+                    Text(
+                        text = getIconEmoji(iconName),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+
+                Column {
+                    Text(
+                        text = income.description,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1, // 추가
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    Text(
+                        text = income.categoryName ?: "카테고리 없음",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFff4949)
+                    )
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    Text(
+                        text = SimpleDateFormat("HH:mm", Locale.KOREA).format(Date(income.date)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "${day}일",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "+" + NumberFormat.getNumberInstance(Locale.KOREA).format(income.amount) + "원",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFFff4949)
                 )
-                Text(
-                    text = "(${expenseCount}건)",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
 
-            Text(
-                text = NumberFormat.getNumberInstance(Locale.KOREA).format(dayTotal) + "원",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "삭제",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
         }
     }
 }
@@ -498,11 +677,12 @@ fun CalendarDay(
     }
 }
 
-// 월별 데이터를 한 번에 계산하는 통합 함수
-fun calculateMonthlyExpenseData(
+// 수입/지출 통합 월별 데이터 계산 함수
+fun calculateMonthlyIncomeExpenseData(
     expenses: List<ExpenseWithCategory>,
+    incomes: List<IncomeWithCategory>,
     currentMonth: Calendar
-): MonthlyExpenseData {
+): MonthlyIncomeExpenseData {
     val targetYear = currentMonth.get(Calendar.YEAR)
     val targetMonth = currentMonth.get(Calendar.MONTH)
 
@@ -512,18 +692,34 @@ fun calculateMonthlyExpenseData(
                 expenseDate.get(Calendar.MONTH) == targetMonth
     }.sortedByDescending { it.date }
 
-    val dailyTotals = monthExpenses.groupBy { expense ->
+    val monthIncomes = incomes.filter { income ->
+        val incomeDate = Calendar.getInstance().apply { timeInMillis = income.date }
+        incomeDate.get(Calendar.YEAR) == targetYear &&
+                incomeDate.get(Calendar.MONTH) == targetMonth
+    }.sortedByDescending { it.date }
+
+    val dailyExpenseTotals = monthExpenses.groupBy { expense ->
         val expenseDate = Calendar.getInstance().apply { timeInMillis = expense.date }
         expenseDate.get(Calendar.DAY_OF_MONTH)
     }.mapValues { (_, dayExpenses) ->
         dayExpenses.sumOf { it.amount }
     }
 
-    return MonthlyExpenseData(
-        totalAmount = monthExpenses.sumOf { it.amount },
+    val dailyIncomeTotals = monthIncomes.groupBy { income ->
+        val incomeDate = Calendar.getInstance().apply { timeInMillis = income.date }
+        incomeDate.get(Calendar.DAY_OF_MONTH)
+    }.mapValues { (_, dayIncomes) ->
+        dayIncomes.sumOf { it.amount }
+    }
+
+    return MonthlyIncomeExpenseData(
+        totalIncome = monthIncomes.sumOf { it.amount },
+        totalExpense = monthExpenses.sumOf { it.amount },
+        incomeCount = monthIncomes.size,
         expenseCount = monthExpenses.size,
-        expenseDays = dailyTotals.keys.size,
-        dailyTotals = dailyTotals,
+        dailyIncomeTotals = dailyIncomeTotals,
+        dailyExpenseTotals = dailyExpenseTotals,
+        allIncomes = monthIncomes,
         allExpenses = monthExpenses,
         month = currentMonth
     )
@@ -593,4 +789,15 @@ fun isWeekend(date: Long): Boolean {
     val calendar = Calendar.getInstance().apply { timeInMillis = date }
     val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
     return dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY
+}
+
+// IncomeWithCategory를 Income으로 변환
+fun IncomeWithCategory.toIncome(): Income {
+    return Income(
+        id = this.id,
+        amount = this.amount,
+        description = this.description,
+        date = this.date,
+        categoryId = this.categoryId
+    )
 }

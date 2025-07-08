@@ -65,7 +65,6 @@ class ExpenseCategoryRepository(private val expenseCategoryDao: ExpenseCategoryD
             ExpenseCategory(name = "쇼핑", iconName = "shopping_cart"),
             ExpenseCategory(name = "의료비", iconName = "local_hospital"),
             ExpenseCategory(name = "문화생활", iconName = "movie"),
-            ExpenseCategory(name = "기타", iconName = "more_horiz")
         )
         defaultCategories.forEach { category ->
             // 중복 체크 후 추가

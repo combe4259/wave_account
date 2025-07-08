@@ -76,12 +76,6 @@ fun AccountBookApp() {
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.onPrimary,
-        topBar = {
-            AppTopBar(
-                currentScreen = currentScreen,
-                shouldShowTopBar = !isDetailScreen(currentScreen)
-            )
-        },
         bottomBar = {
             AppBottomBar(
                 currentScreen = currentScreen,
@@ -100,36 +94,36 @@ fun AccountBookApp() {
     }
 }
 
-// TopBar
-@Composable
-private fun AppTopBar(
-    currentScreen: Screen,
-    shouldShowTopBar: Boolean
-) {
-    if (shouldShowTopBar) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp),
-            color = MaterialTheme.colorScheme.primary,
-            tonalElevation = 4.dp
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = currentScreen.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
-    }
-}
+//// TopBar
+//@Composable
+//private fun AppTopBar(
+//    currentScreen: Screen,
+//    shouldShowTopBar: Boolean
+//) {
+//    if (shouldShowTopBar) {
+//        Surface(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .height(64.dp),
+//            color = MaterialTheme.colorScheme.primary,
+//            tonalElevation = 4.dp
+//        ) {
+//            Box(
+//                modifier = Modifier
+//                    .fillMaxSize()
+//                    .padding(horizontal = 16.dp),
+//                contentAlignment = Alignment.Center
+//            ) {
+//                Text(
+//                    text = currentScreen.title,
+//                    style = MaterialTheme.typography.titleLarge,
+//                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+//                    fontWeight = FontWeight.Medium
+//                )
+//            }
+//        }
+//    }
+//}
 
 // BottomBar
 @Composable
