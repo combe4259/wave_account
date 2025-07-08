@@ -23,6 +23,7 @@ import java.util.*
 import coil.compose.AsyncImage
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.example.accountbook.ui.theme.MainColor
@@ -74,6 +75,7 @@ fun DailyExpenseScreen(
     val totalDailyExpense = dailyExpenses.sumOf { it.amount }
 
     Scaffold(
+        containerColor = Color.White,
         topBar = {
             TopAppBar(
                 title = {
@@ -83,14 +85,23 @@ fun DailyExpenseScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = Color.Black,
+                    navigationIconContentColor = Color.Black
+                )
             )
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { onNavigateToAdd(selectedDate) }
+                onClick = { onNavigateToAdd(selectedDate) },
+                containerColor = MaterialTheme.colorScheme.primary
+
             ) {
-                Icon(Icons.Default.Add, contentDescription = "지출 추가")
+                Icon(Icons.Default.Add,
+                    contentDescription = "지출 추가",
+                    tint = MaterialTheme.colorScheme.onPrimary)
             }
         }
     ) { paddingValues ->
@@ -162,8 +173,7 @@ fun DailySummaryCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-         //   containerColor = MaterialTheme.colorScheme.primaryContainer
-            containerColor = MainColor.copy(alpha = 0.1f)
+            containerColor = Color.White
         )
     ) {
         Row(
@@ -263,6 +273,7 @@ fun ExpenseDetailDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
         title = {
             Text(
                 text = "지출 상세 정보",
@@ -353,7 +364,8 @@ fun DailyExpenseItem(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+
+            containerColor = Color.White
         ),
         onClick = onClick
     ) {

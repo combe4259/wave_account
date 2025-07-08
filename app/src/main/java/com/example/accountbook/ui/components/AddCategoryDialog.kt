@@ -50,7 +50,7 @@ fun AddCategoryDialog(
                 .padding(16.dp),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = Color.White,
             )
         ) {
             Column(
@@ -121,7 +121,8 @@ private fun CategoryPreview(
         Card(
             modifier = Modifier.size(80.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = Color.White,
+
             ),
             shape = RoundedCornerShape(12.dp)
         ) {
@@ -228,9 +229,9 @@ private fun IconOption(
     onClick: () -> Unit
 ) {
     val backgroundColor = if (isSelected) {
-        MaterialTheme.colorScheme.primaryContainer
+        Color.White
     } else {
-        MaterialTheme.colorScheme.surfaceVariant
+        Color.White
     }
 
     val borderColor = if (isSelected) {

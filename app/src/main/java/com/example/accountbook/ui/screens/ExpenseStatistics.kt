@@ -517,7 +517,8 @@ fun ExpenseStatisticsScreen(
 
     Column (
         modifier = modifier
-            .background(MaterialTheme.colorScheme.secondary)
+            //Fixme
+            //.background(MaterialTheme.colorScheme.secondary)
             .fillMaxSize()
             .verticalScroll(scrollState)
             .padding(16.dp),         // outer padding around the whole stack

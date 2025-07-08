@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -36,22 +37,20 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
-//갤러리 메인 화면 - ExpenseGalleryViewModel 사용
+//갤러리 메인 화면
 @Composable
 fun ExpenseGalleryScreen(
     viewModel: ExpenseViewModel,
     onNavigateBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    // ExpenseViewModel의 LiveData를 직접 관찰합니다
     val expensesWithImages by viewModel.expensesWithPhotosAndCategory.observeAsState(emptyList())
 
-    // 갤러리 화면의 로컬 상태를 Compose로 관리합니다
     var isLoading by remember { mutableStateOf(true) }
     var selectedExpense by remember { mutableStateOf<ExpenseWithCategory?>(null) }
     var showDetailDialog by remember { mutableStateOf(false) }
 
-    // 데이터가 로드되면 로딩 상태를 해제합니다
+    // 데이터가 로드시 로딩 상태를 해제
     LaunchedEffect(expensesWithImages) {
         isLoading = false
     }
@@ -64,7 +63,6 @@ fun ExpenseGalleryScreen(
             showDetailDialog = true
         },
         onRefresh = {
-            // 필요하다면 여기서 새로고침 로직을 추가할 수 있습니다
             isLoading = true
         },
         modifier = modifier
@@ -148,7 +146,7 @@ private fun GalleryHeader(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            containerColor = Color.White
         )
     ) {
         Row(
@@ -221,7 +219,7 @@ private fun EmptyGalleryState(
 
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                containerColor = Color.White
             )
         ) {
             Text(
@@ -305,7 +303,7 @@ private fun GalleryImageItem(
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                    containerColor = Color.White
                 ),
                 shape = MaterialTheme.shapes.extraSmall
             ) {
@@ -378,7 +376,8 @@ private fun ExpenseDetailDialog(
                 .fillMaxWidth()
                 .padding(16.dp),
             shape = MaterialTheme.shapes.large,
-            tonalElevation = 16.dp
+            tonalElevation = 16.dp,
+            color = Color.White
         ) {
             Column(
                 modifier = Modifier.padding(20.dp)
@@ -417,7 +416,7 @@ private fun ExpenseDetailDialog(
                 // 정보 섹션
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        containerColor = Color.White
                     )
                 ) {
                     Column(

@@ -1,5 +1,6 @@
 package com.example.accountbook.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -141,14 +142,19 @@ fun CategoryGridItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    // 카테고리별 고유 색상을 파싱하여 아이콘과 강조 요소에 사용
+
+
+
     val MainColor = Color(0xFF5E69EE)
 
     val backgroundColor = if (isSelected) {
-        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f)
+        Color.White
     } else {
-        MaterialTheme.colorScheme.surface
+        Color.White
     }
+
+
+    // 선택 상태는 카테고리 색상으로 미묘한 테두리 표현
 
     val borderColor = if (isSelected) {
         MainColor
@@ -178,20 +184,25 @@ fun CategoryGridItem(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 아이콘 부분
-            if (iconName != null) {
-                Text(
-                    text = getIconEmoji(iconName),
-                    fontSize = 16.sp, // 크기 조금 줄임
-                )
-            } else {
-                Surface(
-                    modifier = Modifier.size(16.dp), // 크기 줄임
-                    shape = RoundedCornerShape(50),
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
+            // 아이콘 영역
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .padding(bottom = 6.dp),
+                contentAlignment = Alignment.Center,
+
+
+            ) {
+                if (iconName != null) {
+                    Text(
+                        text = getIconEmoji(iconName),
+                        fontSize = 16.sp,
+                    )
+                } else {
+                    Surface(
+                        modifier = Modifier.size(16.dp),
+                        shape = RoundedCornerShape(50),
+                        color = Color.White
                     ) {
                         Text(
                             text = name.take(1),
@@ -223,9 +234,6 @@ fun CategoryGridItem(
 
 /**
  * 새 카테고리 추가 버튼 아이템
- *
- * 기존 카테고리들과 일관된 Material Design 색상 시스템을 사용하면서
- * 사용자가 새 카테고리를 추가할 수 있음을 직관적으로 표현합니다
  */
 @Composable
 fun AddNewCategoryItem(
@@ -242,7 +250,7 @@ fun AddNewCategoryItem(
             )
             .clip(RoundedCornerShape(8.dp))
             .clickable { onClick() },
-        color = MaterialTheme.colorScheme.surface,
+        color = Color.White,
         tonalElevation = 0.dp
     ) {
         Column(
@@ -252,7 +260,7 @@ fun AddNewCategoryItem(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // 아이콘 영역 - 기존 카테고리들과 동일한 공간 할당
+            // 아이콘 영역
             Box(
                 modifier = Modifier
                     .size(28.dp)
@@ -270,7 +278,7 @@ fun AddNewCategoryItem(
             Text(
                 text = "추가",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface, // 시스템 텍스트 색상
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Normal,
                 fontSize = 11.sp
             )
