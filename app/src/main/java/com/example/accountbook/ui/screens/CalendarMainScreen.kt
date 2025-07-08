@@ -279,10 +279,11 @@ private fun CalendarTabContent(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 달력 그리드 (지출만 표시 - 기존 로직 유지)
+        // 달력 그리드
         CalendarGrid(
             currentMonth = monthlyData.month,
             monthlyExpenses = monthlyData.dailyExpenseTotals,
+            monthlyIncomes = monthlyData.dailyIncomeTotals,
             onDateClick = onDateSelected
         )
 
@@ -505,7 +506,7 @@ fun DailyIncomeItem(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "+" + NumberFormat.getNumberInstance(Locale.KOREA).format(income.amount) + "원",
+                    text =  NumberFormat.getNumberInstance(Locale.KOREA).format(income.amount) + "원",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
                     color = Color(0xFFff4949)
@@ -585,6 +586,7 @@ fun WeekdayHeader() {
 fun CalendarGrid(
     currentMonth: Calendar,
     monthlyExpenses: Map<Int, Double>,
+    monthlyIncomes: Map<Int, Double>,
     onDateClick: (Long) -> Unit
 ) {
     val daysInMonth = getDaysInMonth(currentMonth)
@@ -598,6 +600,7 @@ fun CalendarGrid(
             CalendarDay(
                 dayInfo = dayInfo,
                 totalExpense = monthlyExpenses[dayInfo.day] ?: 0.0,
+                totalIncome = monthlyIncomes[dayInfo.day] ?:0.0,
                 onDateClick = onDateClick
             )
         }
@@ -608,10 +611,12 @@ fun CalendarGrid(
 fun CalendarDay(
     dayInfo: DayInfo,
     totalExpense: Double,
+    totalIncome: Double,
     onDateClick: (Long) -> Unit
 ) {
     val isToday = isToday(dayInfo.date)
     val hasExpense = totalExpense > 0
+    val hasIncome = totalIncome > 0
     val isWeekendDay = isWeekend(dayInfo.date)
 
     if (!dayInfo.isCurrentMonth) {
@@ -627,7 +632,7 @@ fun CalendarDay(
             containerColor = Color.White
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = if (hasExpense) 2.dp else 1.dp
+            defaultElevation = if (hasExpense || hasIncome) 2.dp else 1.dp
         )
     ) {
         Box(
@@ -638,7 +643,7 @@ fun CalendarDay(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(9.dp)
+                        .height(5.dp)
                         .background(MainColor)
                         .align(Alignment.TopCenter)
                 )
@@ -663,14 +668,29 @@ fun CalendarDay(
                     }
                 )
 
-                if (hasExpense && dayInfo.isCurrentMonth) {
-                    Text(
-                        text = formatCurrency(totalExpense),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontSize = 9.sp,
-                        textAlign = TextAlign.Center
-                    )
+                if ((hasIncome || hasExpense) && dayInfo.isCurrentMonth) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        if (hasIncome) {
+                            Text(
+                                text = formatCurrency(totalIncome),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFFff4949), // 수입 색상 (빨간색)
+                                fontSize = 8.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        if (hasExpense) {
+                            Text(
+                                text = formatCurrency(totalExpense),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary, // 지출 색상 (파란색)
+                                fontSize = 8.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
                 }
             }
         }

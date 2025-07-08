@@ -15,7 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.accountbook.dto.ExpenseWithCategory // 추가!
+import com.example.accountbook.dto.ExpenseWithCategory
+import com.example.accountbook.dto.IncomeWithCategory
 import com.example.accountbook.view.ExpenseViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -39,40 +40,56 @@ fun DailyExpenseScreen(
 ) {
 
     val allExpensesWithCategory by viewModel.allExpensesWithCategory.observeAsState(emptyList())
+    val allIncomesWithCategory by viewModel.allIncomesWithCategory.observeAsState(emptyList())
 
     //팝업창 관리
-    var selectedExpenseForDetail by remember { mutableStateOf<ExpenseWithCategory?>(null) } // 타입 변경!
+    var selectedExpenseForDetail by remember { mutableStateOf<ExpenseWithCategory?>(null) }
+    var selectedIncomeForDetail by remember { mutableStateOf<IncomeWithCategory?>(null) }
 
-    // 선택된 날짜의 지출만 필터링
+    // 선택된 날짜의 지출과 수입 필터링
     val dailyExpenses = remember(allExpensesWithCategory, selectedDate) {
         filterExpensesByDate(allExpensesWithCategory, selectedDate)
     }
 
+    val dailyIncomes = remember(allIncomesWithCategory, selectedDate) {
+        filterIncomesByDate(allIncomesWithCategory, selectedDate)
+    }
+
     //삭제 확인 다이얼로그 상태 관리
     var expenseToDelete by remember { mutableStateOf<ExpenseWithCategory?>(null) }
+    var incomeToDelete by remember { mutableStateOf<IncomeWithCategory?>(null) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
-
-    // DailyExpenseScreen 내부에 추가할 헬퍼 함수
+    // 헬퍼 함수들
     fun requestDeleteExpense(expense: ExpenseWithCategory) {
         expenseToDelete = expense
         showDeleteConfirmDialog = true
     }
 
+    fun requestDeleteIncome(income: IncomeWithCategory) {
+        incomeToDelete = income
+        showDeleteConfirmDialog = true
+    }
+
     // 실제 삭제를 수행하는 함수
-    fun confirmDeleteExpense() {
+    fun confirmDelete() {
         expenseToDelete?.let { expense ->
             viewModel.deleteExpense(expense.toExpense())
         }
+        incomeToDelete?.let { income ->
+            viewModel.deleteIncome(income.toIncome())
+        }
         // 상태 초기화
         expenseToDelete = null
+        incomeToDelete = null
         showDeleteConfirmDialog = false
-        selectedExpenseForDetail = null // 상세보기가 열려있다면 닫기
+        selectedExpenseForDetail = null
+        selectedIncomeForDetail = null
     }
-
 
     val dateFormat = SimpleDateFormat("yyyy년 MM월 dd일 (E)", Locale.KOREA)
     val totalDailyExpense = dailyExpenses.sumOf { it.amount }
+    val totalDailyIncome = dailyIncomes.sumOf { it.amount }
 
     Scaffold(
         containerColor = Color.White,
@@ -97,7 +114,6 @@ fun DailyExpenseScreen(
             FloatingActionButton(
                 onClick = { onNavigateToAdd(selectedDate) },
                 containerColor = MaterialTheme.colorScheme.primary
-
             ) {
                 Icon(Icons.Default.Add,
                     contentDescription = "지출 추가",
@@ -114,32 +130,66 @@ fun DailyExpenseScreen(
             // 일일 지출 요약 카드
             DailySummaryCard(
                 totalExpense = totalDailyExpense,
-                expenseCount = dailyExpenses.size
+                totalIncome = totalDailyIncome,
+                expenseCount = dailyExpenses.size,
+                incomeCount = dailyIncomes.size
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 지출 목록
-            if (dailyExpenses.isEmpty()) {
+            // 수입/지출 목록
+            if (dailyExpenses.isEmpty() && dailyIncomes.isEmpty()) {
                 EmptyDayState(
                     onAddExpense = { onNavigateToAdd(selectedDate) }
                 )
             } else {
-                DailyExpenseList(
-                    expenses = dailyExpenses,
-                    onDeleteExpense = { expense ->
-                        // ExpenseWithCategory를 Expense로 변환해서 전달
-                        //viewModel.deleteExpense(expense.toExpense())
-                        requestDeleteExpense(expense)
-                    },
-                    onExpenseClick = { expense ->
-                        selectedExpenseForDetail = expense
-                    }
-                )
+                // 수입 목록
+                if (dailyIncomes.isNotEmpty()) {
+                    Text(
+                        text = "수입",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFff4949),
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+
+                    DailyIncomeList(
+                        incomes = dailyIncomes,
+                        onDeleteIncome = { income ->
+                            requestDeleteIncome(income)
+                        },
+                        onIncomeClick = { income ->
+                            selectedIncomeForDetail = income
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                // 지출 목록
+                if (dailyExpenses.isNotEmpty()) {
+                    Text(
+                        text = "지출",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+
+                    DailyExpenseList(
+                        expenses = dailyExpenses,
+                        onDeleteExpense = { expense ->
+                            requestDeleteExpense(expense)
+                        },
+                        onExpenseClick = { expense ->
+                            selectedExpenseForDetail = expense
+                        }
+                    )
+                }
             }
         }
 
-
+        // 지출 상세 다이얼로그
         selectedExpenseForDetail?.let { expense ->
             ExpenseDetailDialog(
                 expense = expense,
@@ -149,26 +199,45 @@ fun DailyExpenseScreen(
                 }
             )
         }
-        if (showDeleteConfirmDialog && expenseToDelete != null) {
+
+        // 수입 상세 다이얼로그
+        selectedIncomeForDetail?.let { income ->
+            IncomeDetailDialog(
+                income = income,
+                onDismiss = { selectedIncomeForDetail = null },
+                onDelete = {
+                    requestDeleteIncome(income)
+                }
+            )
+        }
+
+        // 삭제 확인 다이얼로그
+        if (showDeleteConfirmDialog) {
+            val itemName = expenseToDelete?.productName ?: incomeToDelete?.description ?: ""
+            val itemType = if (expenseToDelete != null) "지출" else "수입"
+
             DeleteConfirmDialog(
-                expenseName = expenseToDelete!!.productName,
+                expenseName = itemName,
+                itemType = itemType,
                 onConfirm = {
-                    confirmDeleteExpense()
+                    confirmDelete()
                 },
                 onDismiss = {
                     expenseToDelete = null
+                    incomeToDelete = null
                     showDeleteConfirmDialog = false
                 }
             )
         }
     }
-
 }
 
 @Composable
 fun DailySummaryCard(
     totalExpense: Double,
-    expenseCount: Int
+    totalIncome: Double,
+    expenseCount: Int,
+    incomeCount: Int
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -176,32 +245,73 @@ fun DailySummaryCard(
             containerColor = Color.White
         )
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(20.dp)
         ) {
-            Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = "오늘의 지출",
+                    text = "오늘의 내역",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = "${expenseCount}건",
+                    text = "${incomeCount + expenseCount}건",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
 
-            Text(
-                text = NumberFormat.getNumberInstance(Locale.KOREA).format(totalExpense) + "원",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
+            if (totalIncome > 0) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "수입 (${incomeCount}건)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFFff4949)
+                        )
+                    }
+                    Text(
+                        text = "${NumberFormat.getNumberInstance(Locale.KOREA).format(totalIncome)}원",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFff4949)
+                    )
+                }
+            }
+
+            if (totalExpense > 0) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "지출 (${expenseCount}건)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Text(
+                        text = "${NumberFormat.getNumberInstance(Locale.KOREA).format(totalExpense)}원",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
         }
     }
 }
@@ -219,7 +329,7 @@ fun EmptyDayState(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "이 날짜에는 지출 내역이 없습니다",
+                text = "이 날짜에는 내역이 없습니다",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -234,17 +344,40 @@ fun EmptyDayState(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("지출 추가하기")
+                Text("내역 추가하기")
             }
         }
     }
 }
 
 @Composable
+fun DailyIncomeList(
+    incomes: List<IncomeWithCategory>,
+    onDeleteIncome: (IncomeWithCategory) -> Unit,
+    onIncomeClick: (IncomeWithCategory) -> Unit
+) {
+    val sortedIncomes = remember(incomes) {
+        incomes.sortedByDescending { it.date }
+    }
+
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(sortedIncomes) { income ->
+            DailyIncomeItem(
+                income = income,
+                onDelete = { onDeleteIncome(income) },
+                onClick = { onIncomeClick(income) }
+            )
+        }
+    }
+}
+
+@Composable
 fun DailyExpenseList(
-    expenses: List<ExpenseWithCategory>, // 타입 변경!
-    onDeleteExpense: (ExpenseWithCategory) -> Unit, // 타입 변경!
-    onExpenseClick: (ExpenseWithCategory) -> Unit // 타입 변경!
+    expenses: List<ExpenseWithCategory>,
+    onDeleteExpense: (ExpenseWithCategory) -> Unit,
+    onExpenseClick: (ExpenseWithCategory) -> Unit
 ) {
     val sortedExpenses = remember(expenses) {
         expenses.sortedByDescending { it.date }
@@ -264,95 +397,6 @@ fun DailyExpenseList(
 }
 
 @Composable
-fun ExpenseDetailDialog(
-    expense: ExpenseWithCategory, // 타입 변경!
-    onDismiss: () -> Unit,
-    onDelete: () -> Unit
-) {
-    val dateFormat = SimpleDateFormat("yyyy년 MM월 dd일 HH:mm", Locale.KOREA)
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = Color.White,
-        title = {
-            Text(
-                text = "지출 상세 정보",
-                style = MaterialTheme.typography.headlineSmall
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // 상품명
-                DetailRow(
-                    label = "상품명",
-                    value = expense.productName
-                )
-
-                // 카테고리
-                DetailRow(
-                    label = "카테고리",
-                    value = expense.categoryName ?: "카테고리 없음"
-                )
-
-                // 금액
-                DetailRow(
-                    label = "금액",
-                    value = NumberFormat.getNumberInstance(Locale.KOREA)
-                        .format(expense.amount) + "원"
-                )
-
-                // 날짜
-                DetailRow(
-                    label = "날짜",
-                    value = dateFormat.format(Date(expense.date))
-                )
-
-                // 이미지 (있는 경우만)
-                expense.photoUri?.let { imagePath ->
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "첨부 이미지",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    // 이미지 표시
-                    AsyncImage(
-                        model = imagePath,
-                        contentDescription = "지출 이미지",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        contentScale = ContentScale.Crop,
-                        error = painterResource(id = android.R.drawable.ic_menu_report_image),
-                        placeholder = painterResource(id = android.R.drawable.ic_menu_gallery)
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("확인")
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDelete,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Text("삭제")
-            }
-        }
-    )
-}
-
-@Composable
 fun DailyExpenseItem(
     expense: ExpenseWithCategory,
     onDelete: () -> Unit,
@@ -364,7 +408,6 @@ fun DailyExpenseItem(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         colors = CardDefaults.cardColors(
-
             containerColor = Color.White
         ),
         onClick = onClick
@@ -420,8 +463,7 @@ fun DailyExpenseItem(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "-"+ NumberFormat.getNumberInstance(Locale.KOREA)
-                        .format(expense.amount) + "원",
+                    text = "${NumberFormat.getNumberInstance(Locale.KOREA).format(expense.amount)}원",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium
@@ -444,6 +486,149 @@ fun DailyExpenseItem(
 }
 
 @Composable
+fun IncomeDetailDialog(
+    income: IncomeWithCategory,
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val dateFormat = SimpleDateFormat("yyyy년 MM월 dd일 HH:mm", Locale.KOREA)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        title = {
+            Text(
+                text = "수입 상세 정보",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                DetailRow(
+                    label = "수입원",
+                    value = income.description
+                )
+
+                DetailRow(
+                    label = "카테고리",
+                    value = income.categoryName ?: "카테고리 없음"
+                )
+
+                DetailRow(
+                    label = "금액",
+                    value = "${NumberFormat.getNumberInstance(Locale.KOREA).format(income.amount)}원"
+                )
+
+                DetailRow(
+                    label = "날짜",
+                    value = dateFormat.format(Date(income.date))
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("확인")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDelete,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text("삭제")
+            }
+        }
+    )
+}
+
+@Composable
+fun ExpenseDetailDialog(
+    expense: ExpenseWithCategory,
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val dateFormat = SimpleDateFormat("yyyy년 MM월 dd일 HH:mm", Locale.KOREA)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        title = {
+            Text(
+                text = "지출 상세 정보",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                DetailRow(
+                    label = "상품명",
+                    value = expense.productName
+                )
+
+                DetailRow(
+                    label = "카테고리",
+                    value = expense.categoryName ?: "카테고리 없음"
+                )
+
+                DetailRow(
+                    label = "금액",
+                    value = "${NumberFormat.getNumberInstance(Locale.KOREA).format(expense.amount)}원"
+                )
+
+                DetailRow(
+                    label = "날짜",
+                    value = dateFormat.format(Date(expense.date))
+                )
+
+                expense.photoUri?.let { imagePath ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "첨부 이미지",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    AsyncImage(
+                        model = imagePath,
+                        contentDescription = "지출 이미지",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(id = android.R.drawable.ic_menu_report_image),
+                        placeholder = painterResource(id = android.R.drawable.ic_menu_gallery)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("확인")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDelete,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text("삭제")
+            }
+        }
+    )
+}
+
+@Composable
 fun DetailRow(
     label: String,
     value: String
@@ -462,56 +647,10 @@ fun DetailRow(
     }
 }
 
-// 유틸리티 함수들
-fun filterExpensesByDate(allExpensesWithCategory: List<ExpenseWithCategory>, targetDate: Long): List<ExpenseWithCategory> { // 타입 변경!
-    val targetCalendar = Calendar.getInstance().apply { timeInMillis = targetDate }
-    val targetYear = targetCalendar.get(Calendar.YEAR)
-    val targetMonth = targetCalendar.get(Calendar.MONTH)
-    val targetDay = targetCalendar.get(Calendar.DAY_OF_MONTH)
-
-    return allExpensesWithCategory.filter { expense ->
-        val expenseCalendar = Calendar.getInstance().apply { timeInMillis = expense.date }
-        expenseCalendar.get(Calendar.YEAR) == targetYear &&
-                expenseCalendar.get(Calendar.MONTH) == targetMonth &&
-                expenseCalendar.get(Calendar.DAY_OF_MONTH) == targetDay
-    }.sortedByDescending { it.date }
-}
-
-// 아이콘 이모지 함수
-private fun getIconEmoji(iconName: String): String {
-    return when (iconName) {
-        "restaurant" -> "🍽️"
-        "directions_car" -> "🚗"
-        "shopping_cart" -> "🛒"
-        "local_hospital" -> "🏥"
-        "movie" -> "🎬"
-        "more_horiz" -> "📦"
-        "coffee" -> "☕"
-        "home" -> "🏠"
-        "work" -> "💼"
-        "school" -> "🏫"
-        "sports" -> "⚽"
-        "beauty" -> "💄"
-        "gas_station" -> "⛽"
-        "phone" -> "📱"
-        "book" -> "📚"
-        else -> "📦"
-    }
-}
-
-// ExpenseWithCategory를 Expense로 변환하는 확장 함수
-fun ExpenseWithCategory.toExpense() = com.example.accountbook.model.Expense(
-    id = this.id,
-    productName = this.productName,
-    amount = this.amount,
-    categoryId = this.categoryId,
-    date = this.date,
-    photoUri = this.photoUri
-)
-
 @Composable
 fun DeleteConfirmDialog(
     expenseName: String,
+    itemType: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -519,7 +658,7 @@ fun DeleteConfirmDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "지출 내역 삭제",
+                text = "$itemType 내역 삭제",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -527,13 +666,12 @@ fun DeleteConfirmDialog(
         text = {
             Column {
                 Text(
-                    text = "다음 지출 내역을 삭제하시겠습니까?",
+                    text = "다음 $itemType 내역을 삭제하시겠습니까?",
                     style = MaterialTheme.typography.bodyMedium
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // 삭제할 항목명을 강조하여 표시
                 Text(
                     text = "\"$expenseName\"",
                     style = MaterialTheme.typography.bodyLarge,
@@ -570,4 +708,66 @@ fun DeleteConfirmDialog(
         }
     )
 }
+
+// 유틸리티 함수들
+fun filterExpensesByDate(allExpensesWithCategory: List<ExpenseWithCategory>, targetDate: Long): List<ExpenseWithCategory> {
+    val targetCalendar = Calendar.getInstance().apply { timeInMillis = targetDate }
+    val targetYear = targetCalendar.get(Calendar.YEAR)
+    val targetMonth = targetCalendar.get(Calendar.MONTH)
+    val targetDay = targetCalendar.get(Calendar.DAY_OF_MONTH)
+
+    return allExpensesWithCategory.filter { expense ->
+        val expenseCalendar = Calendar.getInstance().apply { timeInMillis = expense.date }
+        expenseCalendar.get(Calendar.YEAR) == targetYear &&
+                expenseCalendar.get(Calendar.MONTH) == targetMonth &&
+                expenseCalendar.get(Calendar.DAY_OF_MONTH) == targetDay
+    }.sortedByDescending { it.date }
+}
+
+fun filterIncomesByDate(allIncomesWithCategory: List<IncomeWithCategory>, targetDate: Long): List<IncomeWithCategory> {
+    val targetCalendar = Calendar.getInstance().apply { timeInMillis = targetDate }
+    val targetYear = targetCalendar.get(Calendar.YEAR)
+    val targetMonth = targetCalendar.get(Calendar.MONTH)
+    val targetDay = targetCalendar.get(Calendar.DAY_OF_MONTH)
+
+    return allIncomesWithCategory.filter { income ->
+        val incomeCalendar = Calendar.getInstance().apply { timeInMillis = income.date }
+        incomeCalendar.get(Calendar.YEAR) == targetYear &&
+                incomeCalendar.get(Calendar.MONTH) == targetMonth &&
+                incomeCalendar.get(Calendar.DAY_OF_MONTH) == targetDay
+    }.sortedByDescending { it.date }
+}
+
+private fun getIconEmoji(iconName: String): String {
+    return when (iconName) {
+        "restaurant" -> "🍽️"
+        "directions_car" -> "🚗"
+        "shopping_cart" -> "🛒"
+        "local_hospital" -> "🏥"
+        "movie" -> "🎬"
+        "more_horiz" -> "📦"
+        "coffee" -> "☕"
+        "home" -> "🏠"
+        "work" -> "💼"
+        "school" -> "🏫"
+        "sports" -> "⚽"
+        "beauty" -> "💄"
+        "gas_station" -> "⛽"
+        "phone" -> "📱"
+        "book" -> "📚"
+        else -> "📦"
+    }
+}
+
+// 확장 함수들
+fun ExpenseWithCategory.toExpense() = com.example.accountbook.model.Expense(
+    id = this.id,
+    productName = this.productName,
+    amount = this.amount,
+    categoryId = this.categoryId,
+    date = this.date,
+    photoUri = this.photoUri
+)
+
+
 
