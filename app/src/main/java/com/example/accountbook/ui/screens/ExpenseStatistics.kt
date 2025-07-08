@@ -82,7 +82,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import com.example.accountbook.dto.ExpenseWithCategory
 import com.example.accountbook.model.Expense
-import com.example.accountbook.ui.charts.TextMarker
 import com.example.accountbook.ui.components.BottomStats
 import com.example.accountbook.ui.components.SimpleLineMarker
 import com.example.accountbook.ui.components.StatisticTopBar
@@ -139,6 +138,11 @@ fun FirstLineChartDemo(
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.MATCH_PARENT
                         )
+                        setDrawGridBackground(false)
+                        xAxis.setDrawGridLines(false)       // vertical grid lines
+                        axisLeft.setDrawGridLines(false)    // horizontal grid lines (left side)
+                        axisRight.setDrawGridLines(false)
+
                         description.isEnabled = false
                         axisRight.isEnabled = false
                         isHighlightPerTapEnabled = true
@@ -342,12 +346,12 @@ fun PieChartByCategory(
 //            if (sum > 0f) PieEntry(sum, cat) else null
 //        }
 //    }
-    // ── 2) PIE data = top5 + “기타” ─────────────────────────────────────
+
     val top5 = sumsByCat.take(5)
     val etcSum = sumsByCat.drop(5).sumOf { it.second.toDouble() }.toFloat()
     val pieEntries = buildList {
         addAll(top5.map { PieEntry(it.second, it.first) })
-        if (etcSum > 0f) add(PieEntry(etcSum, "기타"))
+        if (etcSum > 0f) add(PieEntry(etcSum, "기타 지출"))
     }
 
     val baseColors = listOf(
@@ -356,7 +360,7 @@ fun PieChartByCategory(
         Color(0xFF3E8BEB), // sky blue
         Color(0xFF39AFEA), // cyan-blue
         Color(0xFF2FB7D5), // teal-blue
-        Color(0xFF2999C0)  // turquoise-blue
+        Color(0xFF44C6DC)  // turquoise-blue
     )
 
     val sliceColors = pieEntries.mapIndexed { idx, _ ->
@@ -380,19 +384,12 @@ fun PieChartByCategory(
                         setUsePercentValues(true)
                         description.isEnabled = false
                         legend.isEnabled = false
-                        setDrawEntryLabels(false)
                         isDrawHoleEnabled = false
                         isHighlightPerTapEnabled = true
-                        marker = TextMarker(
-                            ctx,
-                            textSizeSp = 12f,
-                            bgColor = Color.Black.copy(alpha = 0.5f).toArgb(),
-                            textColor = Color.White.toArgb(),
-                            total = totalForMarker,
-                            pieCenter = center,
-                            pieRadius = radius
-                        )
                         setTransparentCircleAlpha(0)
+                        setEntryLabelTextSize(13f)
+                        setEntryLabelColor(Color.Black.toArgb())
+//                        setEntryLabelTypeface(Typeface.DEFAULT_BOLD)
                         animateY(500, Easing.EaseInOutQuad)
                     }
                 },
@@ -401,11 +398,20 @@ fun PieChartByCategory(
                     val dataSet = PieDataSet(pieEntries, "").apply {
                         colors = sliceColors
                         valueFormatter = PercentFormatter(chart)
-                        setDrawValues(false)
-                        valueTextSize = 12f
-                        valueTextColor = Color.Black.toArgb()
+                        valueTextSize = 13f
+//                        valueTextColor = Color.Black.toArgb()
+                        setValueTextColors(sliceColors)
                         valueTypeface = Typeface.DEFAULT_BOLD
                         sliceSpace = 2f
+
+                        setDrawValues(true)
+                        isUsingSliceColorAsValueLineColor = true
+                        valueLinePart1OffsetPercentage = 75f
+                        valueLinePart1Length = 0.7f
+                        valueLinePart2Length = 0.8f
+                        valueLineColor = Color.Black.toArgb()
+                        yValuePosition = PieDataSet.ValuePosition.OUTSIDE_SLICE
+                        xValuePosition = PieDataSet.ValuePosition.OUTSIDE_SLICE
                     }
                     chart.data = PieData(dataSet)
                     chart.invalidate()
@@ -458,7 +464,8 @@ fun PieChartByCategory(
                     // ③ formatted amount
                     Text(
                         text = String.format("%,d원", amount.toLong()),
-                        style = MaterialTheme.typography.bodyLarge
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(colorInt)
                     )
                 }
             }
@@ -493,19 +500,6 @@ fun OverviewTab(
     hasExpenses: Boolean,
     modifier: Modifier = Modifier
 ) {
-    if (!hasExpenses) {
-        Text(
-            "지출 내역 없음",
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(vertical = 48.dp),
-//            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-            color = Color.Gray,
-            fontSize = 18.sp
-        )
-        return
-    }
 
     val legendRows  = sumsThisMonth.size + 1
     val legendH     = legendRows * 50      // 28 dp per row
@@ -537,23 +531,38 @@ fun OverviewTab(
                 )
             }
         )
-        FirstLineChartDemo(
-            currentMonth = currentMonth,
-            viewModel    = viewModel,
-            modifier     = Modifier
-                .fillMaxWidth()
-                .height(170.dp)
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        PieChartByCategory(
-            currentMonth = currentMonth,
-            viewModel    = viewModel,
-            sumsThisMonth = sumsThisMonth,
-            chartHeight = pieSectionH,
-            modifier     = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-        )
+
+        if (!hasExpenses) {
+            Text(
+                "지출 내역 없음",
+                modifier = modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 48.dp),
+//            style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+                color = Color.Gray,
+                fontSize = 18.sp
+            )
+            return
+        } else {
+            FirstLineChartDemo(
+                currentMonth = currentMonth,
+                viewModel = viewModel,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(170.dp)
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            PieChartByCategory(
+                currentMonth = currentMonth,
+                viewModel = viewModel,
+                sumsThisMonth = sumsThisMonth,
+                chartHeight = pieSectionH,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+            )
+        }
     }
 }
 
