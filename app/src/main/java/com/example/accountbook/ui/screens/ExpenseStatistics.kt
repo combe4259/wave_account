@@ -58,35 +58,48 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.collections.lastOrNull
 import android.util.Log
+import android.view.WindowInsets
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.automirrored.filled.ShowChart
+import androidx.compose.material.icons.filled.PieChartOutline
+import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
+import com.example.accountbook.dto.ExpenseWithCategory
 import com.example.accountbook.model.Expense
 import com.example.accountbook.ui.charts.TextMarker
 import com.example.accountbook.ui.components.BottomStats
+import com.example.accountbook.ui.components.SimpleLineMarker
+import com.example.accountbook.ui.components.StatisticTopBar
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
+import java.text.NumberFormat
 import java.time.Month
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 private const val MONTHLY_LIMIT = 1_000_000f      // 1 M ₩ target
 
 @Composable
 fun FirstLineChartDemo(
+    modifier: Modifier = Modifier,
     currentMonth: Calendar,
-    viewModel: ExpenseViewModel = viewModel(),
-    modifier: Modifier = Modifier
+    viewModel: ExpenseViewModel = viewModel()
 ) {
-    // generate 12 points (month vs value)
     val expensesWithCategory by viewModel.allExpensesWithCategory.observeAsState(initial = emptyList())
     val year  = currentMonth.get(Calendar.YEAR)
     val monthNumber = currentMonth.get(Calendar.MONTH) + 1
@@ -100,7 +113,6 @@ fun FirstLineChartDemo(
         daysInMonth
     }
 
-
     val dailySums: Map<Int, Float> = expensesWithCategory
         .map { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() to it.amount }
         .filter { (date, _) ->
@@ -109,19 +121,14 @@ fun FirstLineChartDemo(
         .groupBy   { (date, _) -> date.dayOfMonth }
         .mapValues { (_, list) -> list.sumOf { it.second }.toFloat() }
 
-    // ➌ build zero-based entries so “1” → x=0, “2”→ x=1, …
     val entries = (1..daysToShow).map { d ->
         Entry((d - 1).toFloat(), dailySums[d] ?: 0f)
     }
-
-    // ➍ labels remain “MM-dd”
-    val labels = (1..daysToShow).map {
-        String.format("%02d", it)
-    }
-
     val primary = MaterialTheme.colorScheme.primary
     val primaryInt   = primary.toArgb()
-    val tertiaryInt  = MaterialTheme.colorScheme.tertiary.toArgb()
+    val labels = (1..daysToShow).map { d ->
+        "%d/%d".format(monthNumber, d)  // “07/05”
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         key(currentMonth.timeInMillis) {
@@ -134,6 +141,8 @@ fun FirstLineChartDemo(
                         )
                         description.isEnabled = false
                         axisRight.isEnabled = false
+                        isHighlightPerTapEnabled = true
+                        marker = SimpleLineMarker(ctx, labels)
                         animateX(300)
 
                     }
@@ -142,9 +151,9 @@ fun FirstLineChartDemo(
                     chart.xAxis.apply {
                         position = XAxis.XAxisPosition.BOTTOM
                         granularity = 1f
-                        labelCount = labels.size
-                        valueFormatter =
-                            IndexAxisValueFormatter(labels)           // :contentReference[oaicite:13]{index=13}
+//                        labelCount = labels.size
+//                        valueFormatter =
+//                            IndexAxisValueFormatter(labels)           // :contentReference[oaicite:13]{index=13}
                     }
 
                     val dataSet = LineDataSet(entries, "지출 추이").apply {
@@ -309,11 +318,10 @@ fun PieChartByCategory(
     currentMonth: Calendar,
     sumsThisMonth: List<Pair<String, Float>>,
     viewModel: ExpenseViewModel = viewModel(),
+    chartHeight: Dp,
     modifier: Modifier = Modifier
         .wrapContentHeight()
 ) {
-
-    //val expenses by viewModel.allExpenses.observeAsState(emptyList())
     val expensesWithCategory by viewModel.allExpensesWithCategory.observeAsState(initial = emptyList())
     val year     = currentMonth.get(Calendar.YEAR)
     val monthNumber    = currentMonth.get(Calendar.MONTH) + 1
@@ -329,30 +337,36 @@ fun PieChartByCategory(
         .toList()
         .sortedByDescending { it.second }
     val totalForMarker = sumsByCat.sumOf { it.second.toDouble() }.toFloat()
-    val entries = remember(currentMonth, sumsByCat) {
-        sumsByCat.mapNotNull { (cat, sum) ->
-            if (sum > 0f) PieEntry(sum, cat) else null
-        }
+//    val entries = remember(currentMonth, sumsByCat) {
+//        sumsByCat.mapNotNull { (cat, sum) ->
+//            if (sum > 0f) PieEntry(sum, cat) else null
+//        }
+//    }
+    // ── 2) PIE data = top5 + “기타” ─────────────────────────────────────
+    val top5 = sumsByCat.take(5)
+    val etcSum = sumsByCat.drop(5).sumOf { it.second.toDouble() }.toFloat()
+    val pieEntries = buildList {
+        addAll(top5.map { PieEntry(it.second, it.first) })
+        if (etcSum > 0f) add(PieEntry(etcSum, "기타"))
     }
-    // 6) Choose a color per category (you can customize these)
+
     val baseColors = listOf(
-        MaterialTheme.colorScheme.primary,
-        MaterialTheme.colorScheme.tertiary,
-        Color(0xFF2ed573),
-        Color(0xFFEDCE5C),
-        Color(0xFFFF9800),
-        Color(0xFFff6348)
+        Color(0xFF5E69EE), // indigo-violet
+        Color(0xFF4966D4), // deep periwinkle
+        Color(0xFF3E8BEB), // sky blue
+        Color(0xFF39AFEA), // cyan-blue
+        Color(0xFF2FB7D5), // teal-blue
+        Color(0xFF2999C0)  // turquoise-blue
     )
 
-    val sliceColors = entries.mapIndexed { idx, _ ->
+    val sliceColors = pieEntries.mapIndexed { idx, _ ->
         baseColors.getOrNull(idx)?.copy(alpha = 0.8f)?.toArgb()
             ?: ColorTemplate.MATERIAL_COLORS[idx % ColorTemplate.MATERIAL_COLORS.size]
     }
 
-    val total = sumsByCat.sumOf { it.second.toDouble() }.toFloat()
-
     Column(modifier = modifier
         .fillMaxWidth()
+        .height(chartHeight)
     ) {
         key(currentMonth.timeInMillis) {
             AndroidView(
@@ -384,7 +398,7 @@ fun PieChartByCategory(
                 },
                 update = { chart ->
                     // 7) Build DataSet with category-specific colors
-                    val dataSet = PieDataSet(entries, "").apply {
+                    val dataSet = PieDataSet(pieEntries, "").apply {
                         colors = sliceColors
                         valueFormatter = PercentFormatter(chart)
                         setDrawValues(false)
@@ -400,10 +414,12 @@ fun PieChartByCategory(
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
+
+        val pctFormat = NumberFormat.getPercentInstance().apply { minimumFractionDigits = 1 }
         Column(modifier = Modifier.fillMaxWidth()) {
             sumsByCat.forEachIndexed { idx, (category, amount) ->
-                val colorInt = sliceColors[idx]
-                val pct = amount / total * 100f
+                val colorInt = sliceColors[min(idx, sliceColors.size - 1)]
+                val pct = amount / totalForMarker * 100f
 
                 Row(
                     modifier = Modifier
@@ -412,6 +428,7 @@ fun PieChartByCategory(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // ① colored box with percent
+                    val idx = sumsByCat.indexOfFirst { it.first == category }
                     Box(
                         modifier = Modifier
                             .width(40.dp)
@@ -468,6 +485,118 @@ fun PieChartByCategory(
 }
 
 @Composable
+fun OverviewTab(
+    currentMonth: Calendar,
+    onMonthChange: (Calendar) -> Unit,
+    viewModel: ExpenseViewModel,
+    sumsThisMonth: List<Pair<String, Float>>,
+    hasExpenses: Boolean,
+    modifier: Modifier = Modifier
+) {
+    if (!hasExpenses) {
+        Text(
+            "지출 내역 없음",
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(vertical = 48.dp),
+//            style = MaterialTheme.typography.headlineSmall,
+            textAlign = TextAlign.Center,
+            color = Color.Gray,
+            fontSize = 18.sp
+        )
+        return
+    }
+
+    val legendRows  = sumsThisMonth.size + 1
+    val legendH     = legendRows * 50      // 28 dp per row
+    val pieH        = 240                  // keep the graphic 240 dp
+    val pieSectionH = (pieH + legendH).dp
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth(),
+//            .padding(horizontal = 16.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        MonthNavigationHeaderfotStatistics(
+            currentMonth = currentMonth,
+            onPreviousMonth = {
+                onMonthChange(
+                    Calendar.getInstance().apply {
+                        time = currentMonth.time
+                        add(Calendar.MONTH, -1)
+                    }
+                )
+            },
+            onNextMonth = {
+                onMonthChange(
+                    Calendar.getInstance().apply {
+                        time = currentMonth.time
+                        add(Calendar.MONTH, 1)
+                    }
+                )
+            }
+        )
+        FirstLineChartDemo(
+            currentMonth = currentMonth,
+            viewModel    = viewModel,
+            modifier     = Modifier
+                .fillMaxWidth()
+                .height(170.dp)
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        PieChartByCategory(
+            currentMonth = currentMonth,
+            viewModel    = viewModel,
+            sumsThisMonth = sumsThisMonth,
+            chartHeight = pieSectionH,
+            modifier     = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+        )
+    }
+}
+
+@Composable
+fun ProjectionTab(
+    currentMonth: Calendar,
+    viewModel: ExpenseViewModel,
+    expenses: List<ExpenseWithCategory>,
+    sumsThisMonth: List<Pair<String, Float>>,
+    sliceColors: List<Int>,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            "누적 지출 금액",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        SecondLineChartDemo(
+            headerMonth = currentMonth,
+            viewModel   = viewModel,
+            modifier    = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+        )
+
+        BottomStats(
+            currentMonth  = currentMonth,
+            expenses      = expenses,
+            sumsThisMonth = sumsThisMonth,
+            sliceColors   = sliceColors
+        )
+    }
+}
+
+
+@Composable
 fun ExpenseStatisticsScreen(
     modifier: Modifier = Modifier,
     viewModel: ExpenseViewModel = viewModel()
@@ -479,12 +608,9 @@ fun ExpenseStatisticsScreen(
             viewModel.statsScroll = scrollState.value
         }
     }
-
     val expensesWithCategory by viewModel.allExpensesWithCategory.observeAsState(initial = emptyList())
-
     val year  = currentMonth.get(Calendar.YEAR)
     val month = currentMonth.get(Calendar.MONTH) + 1
-
     val sumsThisMonth = remember(expensesWithCategory, year, month) {
         expensesWithCategory
             .map { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() to it }
@@ -495,8 +621,6 @@ fun ExpenseStatisticsScreen(
             .toList()
             .sortedByDescending { it.second }
     }
-
-    /* ────────────────────── 3. sliceColors (same rule as pie) ────────── */
     val baseColors = listOf(
         MaterialTheme.colorScheme.primary,
         MaterialTheme.colorScheme.tertiary,
@@ -509,96 +633,65 @@ fun ExpenseStatisticsScreen(
         baseColors.getOrNull(idx)?.copy(alpha = 0.8f)?.toArgb()
             ?: ColorTemplate.MATERIAL_COLORS[idx % ColorTemplate.MATERIAL_COLORS.size]
     }
-
     val hasExpensesThisMonth = expensesWithCategory.any {
         val date = Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate()
         date.year == year && date.monthValue == month
     }
+    var selectedTab by remember { mutableStateOf(0)}
 
-    Column (
+    Column(
         modifier = modifier
             //Fixme
             //.background(MaterialTheme.colorScheme.secondary)
             .fillMaxSize()
             .verticalScroll(scrollState)
+            .navigationBarsPadding()
             .padding(16.dp),         // outer padding around the whole stack
+
         verticalArrangement = Arrangement.spacedBy(12.dp) // space between charts
     ) {
-        Text(
-            text = "월별 지출현황",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 4.dp)
-                .fillMaxWidth()
-        )
-
-        MonthNavigationHeaderfotStatistics(
-            currentMonth = currentMonth,
-            onPreviousMonth = {
-                currentMonth = Calendar.getInstance().apply {
-                    time = currentMonth.time
-                    add(Calendar.MONTH, -1)
-                }
-            },
-            onNextMonth = {
-                currentMonth = Calendar.getInstance().apply {
-                    time = currentMonth.time
-                    add(Calendar.MONTH, 1)
+//        Text(
+//            text = "월별 지출현황",
+//            style = MaterialTheme.typography.headlineSmall,
+//            fontWeight = FontWeight.Bold,
+//            textAlign = TextAlign.Center,
+//            modifier = Modifier.padding(bottom = 4.dp)
+//                .fillMaxWidth()
+//        )
+        TabRow(
+            selectedTabIndex = selectedTab,
+            containerColor   = Color.White,
+            contentColor     = MaterialTheme.colorScheme.primary
+        ) {
+            Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.PieChartOutline, contentDescription = null, Modifier.size(20.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("개요")
                 }
             }
-        )
-        if (hasExpensesThisMonth) {
-            FirstLineChartDemo(
-                currentMonth = currentMonth,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(170.dp)
-                    .padding(bottom = 4.dp)
+            Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.AutoMirrored.Filled.ShowChart, contentDescription = null, Modifier.size(20.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("권장 지출")
+                }
+            }
+        }
+        when (selectedTab) {
+            0 -> OverviewTab(
+                currentMonth   = currentMonth,
+                onMonthChange = { currentMonth = it},
+                viewModel      = viewModel,
+                sumsThisMonth  = sumsThisMonth,
+                hasExpenses    = hasExpensesThisMonth,
             )
-            Spacer(modifier = Modifier.height(10.dp))
-            PieChartByCategory(
-                currentMonth = currentMonth,
-                sumsThisMonth = sumsThisMonth,
-                modifier = Modifier
-                    .height(500.dp)
-                    .fillMaxWidth()
-            )
-//            Spacer(modifier = Modifier.height(30.dp))
-            Text(
-                text = "누적 지출 금액",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 0.dp)
-                    .fillMaxWidth()
-            )
-
-            SecondLineChartDemo(
-                headerMonth = currentMonth,
-                modifier = Modifier
-//                .weight(1f)
-                    .fillMaxWidth()
-                    .height(200.dp)
-            )
-
-            BottomStats(
-                currentMonth = currentMonth,
-                expenses = expensesWithCategory,
-                sumsThisMonth = sumsThisMonth,
-                sliceColors = sliceColors
-            )
-
-        } else {
-            Text(
-                text = "지출 내역 없음",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.Gray,
-                textAlign = TextAlign.Center,
-                fontSize = 18.sp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 48.dp)
+            1 -> ProjectionTab(
+                currentMonth   = currentMonth,
+                viewModel      = viewModel,
+                expenses       = expensesWithCategory,
+                sumsThisMonth  = sumsThisMonth,
+                sliceColors    = sliceColors
             )
         }
     }
