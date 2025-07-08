@@ -76,12 +76,6 @@ fun AccountBookApp() {
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.onPrimary,
-        topBar = {
-            AppTopBar(
-                currentScreen = currentScreen,
-                shouldShowTopBar = !isDetailScreen(currentScreen)
-            )
-        },
         bottomBar = {
             AppBottomBar(
                 currentScreen = currentScreen,
