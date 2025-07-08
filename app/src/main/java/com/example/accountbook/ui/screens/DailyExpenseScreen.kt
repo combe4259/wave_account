@@ -420,9 +420,10 @@ fun DailyExpenseItem(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = NumberFormat.getNumberInstance(Locale.KOREA)
+                    text = "-"+ NumberFormat.getNumberInstance(Locale.KOREA)
                         .format(expense.amount) + "원",
                     style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium
                 )
 

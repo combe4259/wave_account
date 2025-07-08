@@ -33,8 +33,10 @@ import androidx.compose.ui.window.Dialog
 fun AddCategoryDialog(
     onDismiss: () -> Unit,
     onConfirm: (name: String, iconName: String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isIncomeTab: Boolean = false
 ) {
+    val primaryColor = if (isIncomeTab) Color(0xFFff4949) else MaterialTheme.colorScheme.primary
     // 다이얼로그 상태 관리
     var categoryName by remember { mutableStateOf("") }
     var selectedIcon by remember { mutableStateOf("more_horiz") }
@@ -83,7 +85,8 @@ fun AddCategoryDialog(
                 // 아이콘 선택 섹션
                 IconSelectionSection(
                     selectedIcon = selectedIcon,
-                    onIconSelected = { selectedIcon = it }
+                    onIconSelected = { selectedIcon = it },
+                    selectedColor = primaryColor
                 )
 
                 // 버튼 영역
@@ -92,7 +95,8 @@ fun AddCategoryDialog(
                     onDismiss = onDismiss,
                     onConfirm = {
                         onConfirm(categoryName.trim(), selectedIcon)
-                    }
+                    },
+                    primaryColor = primaryColor
                 )
             }
         }
@@ -186,13 +190,15 @@ private fun CategoryNameInput(
 @Composable
 private fun IconSelectionSection(
     selectedIcon: String,
-    onIconSelected: (String) -> Unit
+    onIconSelected: (String) -> Unit,
+    selectedColor: Color = MaterialTheme.colorScheme.primary
 ) {
     val availableIcons = listOf(
         "restaurant", "coffee", "shopping_cart", "directions_car",
         "local_hospital", "movie", "book", "sports",
         "home", "work", "school", "phone",
-        "beauty", "gas_station", "more_horiz"
+        "beauty", "gas_station", "more_horiz",
+        "dividend", "rental", "freelance"
     )
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -212,7 +218,8 @@ private fun IconSelectionSection(
                 IconOption(
                     iconName = iconName,
                     isSelected = selectedIcon == iconName,
-                    onClick = { onIconSelected(iconName) }
+                    onClick = { onIconSelected(iconName) },
+                    selectedColor = selectedColor
                 )
             }
         }
@@ -226,7 +233,8 @@ private fun IconSelectionSection(
 private fun IconOption(
     iconName: String,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    selectedColor: Color = MaterialTheme.colorScheme.primary
 ) {
     val backgroundColor = if (isSelected) {
         Color.White
@@ -235,7 +243,7 @@ private fun IconOption(
     }
 
     val borderColor = if (isSelected) {
-        MaterialTheme.colorScheme.primary
+        selectedColor
     } else {
         Color.Transparent
     }
@@ -270,7 +278,8 @@ private fun IconOption(
 private fun DialogButtons(
     canConfirm: Boolean,
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit
+    onConfirm: () -> Unit,
+    primaryColor: Color = MaterialTheme.colorScheme.primary
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -286,7 +295,10 @@ private fun DialogButtons(
         Button(
             onClick = onConfirm,
             enabled = canConfirm,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = primaryColor
+            )
         ) {
             Text("추가")
         }
