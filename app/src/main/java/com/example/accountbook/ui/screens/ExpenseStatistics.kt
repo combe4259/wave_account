@@ -58,37 +58,27 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.collections.lastOrNull
 import android.util.Log
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.key
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.example.accountbook.model.Expense
 import com.example.accountbook.ui.charts.TextMarker
+import com.example.accountbook.ui.components.BottomStats
+import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
+import java.time.Month
+import kotlin.math.roundToInt
 
 private const val MONTHLY_LIMIT = 1_000_000f      // 1 M ₩ target
-
-//private fun calcSumByCat(
-//    expenses: List<Expense>,
-//    year: Int,
-//    month: Int
-//): List<Pair<String, Float>> =
-//    expenses
-//        .filter { exp ->
-//            val d = Instant.ofEpochMilli(exp.date)
-//                .atZone(ZoneId.systemDefault())
-//                .toLocalDate()
-//            d.year == year && d.monthValue == month
-//        }
-//        .groupBy { it.categoryName?.trim().orEmpty().ifEmpty { "미분류" } }
-//        .mapValues { (_, list) -> list.sumOf { it.amount }.toFloat() }
-//        .toList()
-
 
 @Composable
 fun FirstLineChartDemo(
@@ -177,8 +167,9 @@ fun FirstLineChartDemo(
 
 @Composable
 fun SecondLineChartDemo(
-    viewModel: ExpenseViewModel = viewModel(),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    headerMonth: Calendar,
+    viewModel: ExpenseViewModel = viewModel()
 ) {
     // 1) Observe all expenses
     //val expenses by viewModel.allExpenses.observeAsState(emptyList())
@@ -190,15 +181,13 @@ fun SecondLineChartDemo(
     val thisMonth = today.monthValue
     val todayDay  = today.dayOfMonth
 
-    val prevMonthDate = today.minusMonths(1)
-    val prevYear  = prevMonthDate.year
-    val prevMonth = prevMonthDate.monthValue
-    // How many days in previous month:
-    val prevMonthLength = prevMonthDate.lengthOfMonth()
+    val prevCal = (headerMonth.clone() as Calendar).apply { add(Calendar.MONTH, -1) }
+    val prevYear  = prevCal.get(Calendar.YEAR)
+    val prevMonth = prevCal.get(Calendar.MONTH) + 1
+    val prevDays  = prevCal.getActualMaximum(Calendar.DAY_OF_MONTH)
 
     // 3) Helper: build cumulative map for a given year/month
-    fun cumulativeSums(year: Int, month: Int, daysInMonth: Int): List<Float> {
-        // filter+sum per day
+    fun cumulative(year: Int, month: Int, daysInMonth: Int): List<Float> {
         val byDay = expensesWithCategory
             .map { exp ->
                 val ld = Instant.ofEpochMilli(exp.date)
@@ -216,135 +205,109 @@ fun SecondLineChartDemo(
         return daily.runningFold(0f) { acc, v -> acc + v }.drop(1)
     }
 
-    val prevCum = cumulativeSums(prevYear, prevMonth, prevMonthLength)
-//        .let { listOfFloats ->                              // name the List<Float>
-//            if (prevMonthLength < 31) {
-//                listOfFloats + List(31 - prevMonthLength) {     // inner lambda’s 'index'
-//                    // refer to the OUTER list via listOfFloats
-//                    listOfFloats.lastOrNull() ?: 0f
-//                }
-//            } else {
-//                listOfFloats
-//            }
-//        }
+    val currCum  = cumulative(thisYear, thisMonth, todayDay)
+    val cmpCum   = cumulative(prevYear, prevMonth, prevDays)
 
-    val currCum = cumulativeSums(thisYear, thisMonth, todayDay)
-//        .let { listOfFloats ->
-//            listOfFloats + List(31 - todayDay) {
-//                listOfFloats.lastOrNull() ?: 0f
-//            }
-//        }
-
-
-    // 4) Build Entries for days 1..31
-    val prevEntries = prevCum.mapIndexed { idx, sum -> Entry((idx + 1).toFloat(), sum) }
+    val prevEntries = cmpCum.mapIndexed { idx, sum -> Entry((idx + 1).toFloat(), sum) }
     val currEntries = currCum.mapIndexed { idx, sum -> Entry((idx + 1).toFloat(), sum) }
 
-    // 5) Prepare labels “07-01”…“07-31”
-    val labels = List(31) { i ->
-        String.format("%02d-%02d", thisMonth, i + 1)
-    }
+    val labels = List(31) { "%02d-%02d".format(thisMonth, it + 1) }
     val primary = MaterialTheme.colorScheme.primary
     val tertiary = MaterialTheme.colorScheme.tertiary
     val primaryInt   = primary.toArgb()
     val tertiaryInt  = tertiary.toArgb()
     val red = Color(0xFFFF0000)
 
-    Box(modifier = modifier.fillMaxSize()) {
-        AndroidView(
-            factory = { ctx ->
-                LineChart(ctx).apply {
-                    layoutParams = ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-                    description.isEnabled = false
-                    axisRight.isEnabled = false
-                    xAxis.isEnabled = false
-                    legend.isEnabled = false
+    fun makeGradientPrevious(ctx: Context, base: Color): Drawable {
+        val startColor = base.copy(alpha = 0.1f).toArgb()
+        val endColor = base.copy(alpha = 0.5f).toArgb()
+        return GradientDrawable(
+            GradientDrawable.Orientation.BOTTOM_TOP,
+            intArrayOf(startColor, endColor)
+        )
+    }
 
-                    axisLeft.apply {
-                        axisMinimum = 0f
-                        axisMaximum = 1_100_000f
-                        spaceTop     = 15f
+    Box(modifier = modifier.fillMaxSize()) {
+        key(headerMonth.timeInMillis) {
+            AndroidView(
+                factory = { ctx ->
+                    LineChart(ctx).apply {
+                        layoutParams = ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                        description.isEnabled = false
+                        axisRight.isEnabled = false
+                        xAxis.isEnabled = false
+                        legend.isEnabled = false
+
+                        axisLeft.apply {
+                            axisMinimum = 0f
+                            axisMaximum = 1_100_000f
+                            spaceTop = 15f
+                        }
+
+                        // 5a) horizontal limit line at 1,000,000
+                        axisLeft.removeAllLimitLines()
+                        axisLeft.addLimitLine(
+                            LimitLine(1_000_000f, "월 최대")
+                                .apply {
+                                    lineColor = red.copy(alpha = 0.6f).toArgb()
+                                    lineWidth = 2f
+                                    textColor = red.toArgb()
+                                    textSize = 12f
+                                }
+                        )
+                        animateX(400)
+                    }
+                },
+                update = { chart ->
+                    // 5b) X-axis config
+                    chart.xAxis.apply {
+                        position = XAxis.XAxisPosition.BOTTOM
+                        granularity = 1f
+                        labelCount = 31
+                        valueFormatter = IndexAxisValueFormatter(labels)
                     }
 
-                    // 5a) horizontal limit line at 1,000,000
-                    axisLeft.removeAllLimitLines()
-                    axisLeft.addLimitLine(
-                        LimitLine(1_000_000f, "월 최대")
-                            .apply {
-                                lineColor = red.copy(alpha=0.6f).toArgb()
-                                lineWidth = 2f
-                                textColor = red.toArgb()
-                                textSize = 12f
-                            }
-                    )
-                    animateX(400)
-                }
-            },
-            update = { chart ->
-                // 5b) X-axis config
-                chart.xAxis.apply {
-                    position       = XAxis.XAxisPosition.BOTTOM
-                    granularity    = 1f
-                    labelCount     = 31
-                    valueFormatter = IndexAxisValueFormatter(labels)
-                }
+                    val setCurr = LineDataSet(currEntries, "이번 달 누적").apply {
+                        mode = LineDataSet.Mode.CUBIC_BEZIER
+                        setDrawCircles(false)
+                        lineWidth = 2f
+                        setDrawValues(false)
+                        color = primaryInt
+                        circleColors = listOf(primaryInt)
+                    }
 
-                // 5c) Build two data-sets with gradient fill
+                    val dataSets = mutableListOf<ILineDataSet>()
 
-                // Gradient generator
-                fun makeGradientPrevious(ctx: Context, base: Color): Drawable {
-                    val startColor = base.copy(alpha=0.1f).toArgb()
-                    val endColor = base.copy(alpha=0.5f).toArgb()
-                    return GradientDrawable(
-                        GradientDrawable.Orientation.BOTTOM_TOP,
-                        intArrayOf(startColor, endColor)
-                    )
-                }
-                fun makeGradientCurrent(ctx: Context, base: Color): Drawable {
-                    val startColor = base.copy(alpha=0.8f).toArgb()
-                    val endColor = base.copy(alpha=0.5f).toArgb()
-                    return GradientDrawable(
-                        GradientDrawable.Orientation.TOP_BOTTOM,
-                        intArrayOf(startColor, endColor)
-                    )
-                }
+                    if (prevEntries.any { it.y != 0f }) {
+                        val setCmp = LineDataSet(prevEntries, "선택 달 누적").apply {
+                            mode = LineDataSet.Mode.CUBIC_BEZIER
+                            setDrawCircles(false)
+                            setDrawFilled(true)
+                            fillDrawable = makeGradientPrevious(chart.context, tertiary)
+                            color = tertiary.copy(alpha = 0.4f).toArgb()
+                            lineWidth = 2f
+                            setDrawValues(false)
+                        }
+                        dataSets += setCmp
+                    }
+                    dataSets += setCurr
 
-                val setPrev = LineDataSet(prevEntries, "이전 달 누적").apply {
-                    mode            = LineDataSet.Mode.CUBIC_BEZIER
-                    setDrawCircles(false)
-                    circleRadius    = 3f
-                    lineWidth       = 2f
-                    setDrawValues(false)
-                    color           = tertiary.copy(alpha=0.4f).toArgb()
-                    circleColors    = listOf(tertiaryInt)
-                    setDrawFilled(true)
-                    fillDrawable    = makeGradientPrevious(chart.context, tertiary)
+                    chart.data = LineData(dataSets)
+                    chart.invalidate()
+                    chart.animateX(400)
                 }
-                val setCurr = LineDataSet(currEntries, "이번 달 누적").apply {
-                    mode            = LineDataSet.Mode.CUBIC_BEZIER
-                    setDrawCircles(false)
-                    circleRadius    = 3f
-                    lineWidth       = 2f
-                    setDrawValues(false)
-                    color           = primaryInt
-                    circleColors    = listOf(primaryInt)
-//                    setDrawFilled(true)
-//                    fillDrawable    = makeGradientCurrent(chart.context, primary)
-                }
-
-                chart.data = LineData(setPrev, setCurr)
-                chart.invalidate()
-            }
-        )
+            )
+        }
     }
 }
 
 @Composable
 fun PieChartByCategory(
     currentMonth: Calendar,
+    sumsThisMonth: List<Pair<String, Float>>,
     viewModel: ExpenseViewModel = viewModel(),
     modifier: Modifier = Modifier
         .wrapContentHeight()
@@ -494,8 +457,9 @@ fun PieChartByCategory(
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.weight(1f))
+
                 Text(
-                    text = "1000원",
+                    text = String.format("%,d원", sumsThisMonth.sumOf { it.second.toDouble() }.toLong()),
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
@@ -503,15 +467,48 @@ fun PieChartByCategory(
     }
 }
 
-
 @Composable
-fun ExpenseStatisticsScreen(modifier: Modifier = Modifier, viewModel: ExpenseViewModel = viewModel()) {
+fun ExpenseStatisticsScreen(
+    modifier: Modifier = Modifier,
+    viewModel: ExpenseViewModel = viewModel()
+) {
     var currentMonth by remember { mutableStateOf(Calendar.getInstance()) }
-    val scrollState = rememberScrollState()
+    val scrollState = rememberScrollState(initial = viewModel.statsScroll)
+    DisposableEffect(Unit) {
+        onDispose {    // called when you navigate away
+            viewModel.statsScroll = scrollState.value
+        }
+    }
 
     val expensesWithCategory by viewModel.allExpensesWithCategory.observeAsState(initial = emptyList())
+
     val year  = currentMonth.get(Calendar.YEAR)
     val month = currentMonth.get(Calendar.MONTH) + 1
+
+    val sumsThisMonth = remember(expensesWithCategory, year, month) {
+        expensesWithCategory
+            .map { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() to it }
+            .filter { (d, _) -> d.year == year && d.monthValue == month }
+            .map { it.second }
+            .groupBy { it.categoryName?.trim().orEmpty().ifEmpty { "미분류" } }
+            .mapValues { (_, list) -> list.sumOf { it.amount }.toFloat() }
+            .toList()
+            .sortedByDescending { it.second }
+    }
+
+    /* ────────────────────── 3. sliceColors (same rule as pie) ────────── */
+    val baseColors = listOf(
+        MaterialTheme.colorScheme.primary,
+        MaterialTheme.colorScheme.tertiary,
+        Color(0xFF2ED573),
+        Color(0xFFEDCE5C),
+        Color(0xFFFF9800),
+        Color(0xFFFF6348)
+    )
+    val sliceColors = sumsThisMonth.mapIndexed { idx, _ ->
+        baseColors.getOrNull(idx)?.copy(alpha = 0.8f)?.toArgb()
+            ?: ColorTemplate.MATERIAL_COLORS[idx % ColorTemplate.MATERIAL_COLORS.size]
+    }
 
     val hasExpensesThisMonth = expensesWithCategory.any {
         val date = Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate()
@@ -562,6 +559,7 @@ fun ExpenseStatisticsScreen(modifier: Modifier = Modifier, viewModel: ExpenseVie
             Spacer(modifier = Modifier.height(10.dp))
             PieChartByCategory(
                 currentMonth = currentMonth,
+                sumsThisMonth = sumsThisMonth,
                 modifier = Modifier
                     .height(500.dp)
                     .fillMaxWidth()
@@ -577,11 +575,20 @@ fun ExpenseStatisticsScreen(modifier: Modifier = Modifier, viewModel: ExpenseVie
             )
 
             SecondLineChartDemo(
+                headerMonth = currentMonth,
                 modifier = Modifier
 //                .weight(1f)
                     .fillMaxWidth()
                     .height(200.dp)
             )
+
+            BottomStats(
+                currentMonth = currentMonth,
+                expenses = expensesWithCategory,
+                sumsThisMonth = sumsThisMonth,
+                sliceColors = sliceColors
+            )
+
         } else {
             Text(
                 text = "지출 내역 없음",
