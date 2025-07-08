@@ -172,9 +172,7 @@ fun CommonMonthSummaryCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            //containerColor = MaterialTheme.colorScheme.surfaceVariant
-            containerColor = MainColor.copy(alpha = 0.1f)
-
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Row(

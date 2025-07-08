@@ -1,6 +1,9 @@
 package com.example.accountbook.view
 
 import android.app.Application
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.liveData
@@ -26,6 +29,7 @@ import kotlinx.coroutines.launch
  * 개발 초기 단계의 복잡성을 줄이고 빠른 프로토타이핑을 가능하게 합니다.
  */
 class ExpenseViewModel(application: Application) : AndroidViewModel(application) {
+    var statsScroll by mutableStateOf(0)
 
     // Repository 인스턴스들 - 각각의 데이터 영역을 담당합니다
     private val expenseRepository: ExpenseRepository
