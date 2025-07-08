@@ -670,7 +670,8 @@ fun CalendarDay(
 
                 if ((hasIncome || hasExpense) && dayInfo.isCurrentMonth) {
                     Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(0.dp)
                     ) {
                         if (hasIncome) {
                             Text(
@@ -678,7 +679,8 @@ fun CalendarDay(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color(0xFFff4949), // 수입 색상 (빨간색)
                                 fontSize = 8.sp,
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Center,
+                                lineHeight = 8.sp
                             )
                         }
                         if (hasExpense) {
@@ -687,7 +689,8 @@ fun CalendarDay(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary, // 지출 색상 (파란색)
                                 fontSize = 8.sp,
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Center,
+                                lineHeight = 8.sp
                             )
                         }
                     }
