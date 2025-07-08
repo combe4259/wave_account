@@ -23,11 +23,16 @@ import java.util.Calendar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.sp
 import com.example.accountbook.dto.ExpenseWithCategory
+import java.time.YearMonth
 import kotlin.math.roundToInt
-
 
 @Composable
 fun BottomStats(
@@ -138,6 +143,60 @@ fun BottomStats(
                     fontWeight = FontWeight.SemiBold
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun ChartHeaderWithMonthToggle(
+    title: String,
+    selectedMonth: Calendar,
+    earliestMonth: Calendar,
+    onMonthChange: (Calendar) -> Unit
+) {
+    val thisMonth = remember {
+        Calendar.getInstance().apply { set(Calendar.DAY_OF_MONTH, 1) }
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(title,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.weight(1f)
+        )
+
+        val leftEnabled = selectedMonth.after(earliestMonth)
+        IconButton(onClick = {
+            onMonthChange((selectedMonth.clone() as Calendar).apply { add(Calendar.MONTH, -1) })
+            },
+            enabled = leftEnabled) {
+            Icon(Icons.Default.ChevronLeft, contentDescription = "이전 달",
+                tint = if (leftEnabled) Color.Black else Color.LightGray)
+        }
+
+        // ▶ 다음 (이번 달 이전까지만)
+        val limit = Calendar.getInstance().apply {
+            set(Calendar.DAY_OF_MONTH, 1); add(Calendar.MONTH, -1)
+        }
+        val next = (selectedMonth.clone() as Calendar).apply { add(Calendar.MONTH, 1) }
+
+        val label = "${selectedMonth.get(Calendar.MONTH) + 1}월"
+        Text(
+            label,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 0.dp)
+        )
+        IconButton(
+            onClick = { onMonthChange(next) },
+            enabled = next.before(limit)      // 미래·이번달은 비활성
+        ) {
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = "다음 달",
+                tint = if (next.before(limit)) Color.Black else Color.LightGray
+            )
         }
     }
 }

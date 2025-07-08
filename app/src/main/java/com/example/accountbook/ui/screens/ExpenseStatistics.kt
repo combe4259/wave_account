@@ -46,13 +46,16 @@ import androidx.compose.material.icons.filled.PieChartOutline
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.example.accountbook.dto.ExpenseWithCategory
 import com.example.accountbook.ui.components.BottomStats
+import com.example.accountbook.ui.components.ChartHeaderWithMonthToggle
 import com.example.accountbook.ui.components.FirstLineChartDemo
 import com.example.accountbook.ui.components.PieChartByCategory
 import com.example.accountbook.ui.components.SecondLineChartDemo
+import java.time.YearMonth
 
 @Composable
 fun OverviewTab(
@@ -138,6 +141,22 @@ fun ProjectionTab(
     sliceColors: List<Int>,
     modifier: Modifier = Modifier
 ) {
+    // ◀ 이전 달이 기본값
+    var compareMonth by rememberSaveable {
+        mutableStateOf(Calendar.getInstance().apply {
+            set(Calendar.DAY_OF_MONTH, 1)   // 날짜 1일로 맞춰 두면 안전
+            add(Calendar.MONTH, -1)
+        })
+    }
+    val earliestMonth = remember(expenses) {
+        expenses.minOfOrNull { exp ->
+            Calendar.getInstance().apply {
+                timeInMillis = exp.date
+                set(Calendar.DAY_OF_MONTH, 1)
+            }
+        } ?: Calendar.getInstance().apply { set(Calendar.DAY_OF_MONTH, 1) }
+    }
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -148,10 +167,18 @@ fun ProjectionTab(
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
+                .padding(top = 15.dp)
+        )
+        ChartHeaderWithMonthToggle(
+            title = "월별 지출 누적 비교",
+            selectedMonth = compareMonth,
+            earliestMonth = earliestMonth,
+            onMonthChange = { compareMonth = it}
         )
 
         SecondLineChartDemo(
             headerMonth = currentMonth,
+            compareMonth = compareMonth,
             viewModel   = viewModel,
             modifier    = Modifier
                 .fillMaxWidth()
@@ -166,7 +193,6 @@ fun ProjectionTab(
         )
     }
 }
-
 
 @Composable
 fun ExpenseStatisticsScreen(

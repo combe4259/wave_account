@@ -34,6 +34,7 @@ import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
 fun SecondLineChartDemo(
     modifier: Modifier = Modifier,
     headerMonth: Calendar,
+    compareMonth: Calendar,
     viewModel: ExpenseViewModel = viewModel()
 ) {
     // 1) Observe all expenses
@@ -46,10 +47,9 @@ fun SecondLineChartDemo(
     val thisMonth = today.monthValue
     val todayDay  = today.dayOfMonth
 
-    val prevCal = (headerMonth.clone() as Calendar).apply { add(Calendar.MONTH, -1) }
-    val prevYear  = prevCal.get(Calendar.YEAR)
-    val prevMonth = prevCal.get(Calendar.MONTH) + 1
-    val prevDays  = prevCal.getActualMaximum(Calendar.DAY_OF_MONTH)
+    val cmpYear  = compareMonth.get(Calendar.YEAR)
+    val cmpMonth = compareMonth.get(Calendar.MONTH) + 1
+    val cmpDays  = compareMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
 
     // 3) Helper: build cumulative map for a given year/month
     fun cumulative(year: Int, month: Int, daysInMonth: Int): List<Float> {
@@ -71,7 +71,7 @@ fun SecondLineChartDemo(
     }
 
     val currCum  = cumulative(thisYear, thisMonth, todayDay)
-    val cmpCum   = cumulative(prevYear, prevMonth, prevDays)
+    val cmpCum   = cumulative(cmpYear, cmpMonth, cmpDays)
 
     val prevEntries = cmpCum.mapIndexed { idx, sum -> Entry((idx + 1).toFloat(), sum) }
     val currEntries = currCum.mapIndexed { idx, sum -> Entry((idx + 1).toFloat(), sum) }
