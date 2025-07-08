@@ -33,6 +33,7 @@ import com.example.accountbook.dto.ExpenseWithCategory
 import com.example.accountbook.dto.IncomeWithCategory
 import com.example.accountbook.model.Expense
 import com.example.accountbook.model.Income
+import com.example.accountbook.ui.components.LiquidFill
 import com.example.accountbook.ui.components.getIconEmoji
 import com.example.accountbook.ui.theme.MainColor
 import com.example.accountbook.view.ExpenseViewModel
@@ -639,6 +640,18 @@ fun CalendarDay(
             modifier = Modifier.fillMaxSize()
         ) {
             // 오늘 날짜일 때 상단 바 색상
+            val progress = (totalExpense / 30_000.0).toFloat().coerceAtMost(1f)
+            val waveColor = if (totalExpense > 30_000.0)
+                Color(0xFFD8837F)
+            else
+                MaterialTheme.colorScheme.tertiary
+            LiquidFill(
+                progress = progress,
+                waveColor = waveColor,
+                modifier = Modifier
+                    .matchParentSize()          // fills the whole cell
+            )
+
             if (isToday) {
                 Box(
                     modifier = Modifier

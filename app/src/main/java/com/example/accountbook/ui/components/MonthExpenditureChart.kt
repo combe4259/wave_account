@@ -51,11 +51,11 @@ fun FirstLineChartDemo(
         .mapValues { (_, list) -> list.sumOf { it.second }.toFloat() }
 
     val entries = (1..daysToShow).map { d ->
-        Entry((d - 1).toFloat(), dailySums[d] ?: 0f)
+        Entry((d).toFloat(), dailySums[d] ?: 0f)
     }
     val primary = MaterialTheme.colorScheme.primary
     val primaryInt   = primary.toArgb()
-    val labels = (1..daysToShow).map { d ->
+    val labels = (0..daysToShow).map { d ->
         "%d/%d".format(monthNumber, d)  // “07/05”
     }
 

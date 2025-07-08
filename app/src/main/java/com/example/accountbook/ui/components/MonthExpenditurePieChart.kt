@@ -146,7 +146,7 @@ fun PieChartByCategory(
                 }
             )
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(30.dp))
 
         val pctFormat = NumberFormat.getPercentInstance().apply { minimumFractionDigits = 1 }
         Column(modifier = Modifier.fillMaxWidth()) {

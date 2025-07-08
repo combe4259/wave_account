@@ -76,11 +76,10 @@ fun SecondLineChartDemo(
     val prevEntries = cmpCum.mapIndexed { idx, sum -> Entry((idx + 1).toFloat(), sum) }
     val currEntries = currCum.mapIndexed { idx, sum -> Entry((idx + 1).toFloat(), sum) }
 
-    val labels = List(31) { "%02d-%02d".format(thisMonth, it + 1) }
+    val labels = List(31) { "%d/%d".format(thisMonth, it) }
     val primary = MaterialTheme.colorScheme.primary
     val tertiary = MaterialTheme.colorScheme.tertiary
     val primaryInt   = primary.toArgb()
-    val tertiaryInt  = tertiary.toArgb()
     val red = Color(0xFFFF0000)
 
     fun makeGradientPrevious(ctx: Context, base: Color): Drawable {
@@ -105,7 +104,7 @@ fun SecondLineChartDemo(
                         axisRight.isEnabled = false
                         xAxis.isEnabled = false
                         legend.isEnabled = false
-
+                        marker = SimpleLineMarker(ctx, labels)
                         axisLeft.apply {
                             axisMinimum = 0f
                             axisMaximum = 1_100_000f
@@ -127,14 +126,6 @@ fun SecondLineChartDemo(
                     }
                 },
                 update = { chart ->
-                    // 5b) X-axis config
-                    chart.xAxis.apply {
-                        position = XAxis.XAxisPosition.BOTTOM
-                        granularity = 1f
-                        labelCount = 31
-                        valueFormatter = IndexAxisValueFormatter(labels)
-                    }
-
                     val setCurr = LineDataSet(currEntries, "이번 달 누적").apply {
                         mode = LineDataSet.Mode.CUBIC_BEZIER
                         setDrawCircles(false)
@@ -162,7 +153,7 @@ fun SecondLineChartDemo(
 
                     chart.data = LineData(dataSets)
                     chart.invalidate()
-                    chart.animateX(400)
+//                    chart.animateX(400)
                 }
             )
         }

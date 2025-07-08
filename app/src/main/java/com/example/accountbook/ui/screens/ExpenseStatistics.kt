@@ -161,14 +161,14 @@ fun ProjectionTab(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            "누적 지출 금액",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-                .padding(top = 15.dp)
-        )
+//        Text(
+//            "누적 지출 금액",
+//            style = MaterialTheme.typography.headlineSmall,
+//            fontWeight = FontWeight.Bold,
+//            textAlign = TextAlign.Center,
+//            modifier = Modifier.fillMaxWidth()
+//                .padding(top = 15.dp)
+//        )
         ChartHeaderWithMonthToggle(
             title = "월별 지출 누적 비교",
             selectedMonth = compareMonth,
@@ -186,7 +186,6 @@ fun ProjectionTab(
         )
 
         BottomStats(
-            currentMonth  = currentMonth,
             expenses      = expenses,
             sumsThisMonth = sumsThisMonth,
             sliceColors   = sliceColors
@@ -219,18 +218,14 @@ fun ExpenseStatisticsScreen(
             .toList()
             .sortedByDescending { it.second }
     }
-    val baseColors = listOf(
-        MaterialTheme.colorScheme.primary,
-        MaterialTheme.colorScheme.tertiary,
-        Color(0xFF2ED573),
-        Color(0xFFEDCE5C),
-        Color(0xFFFF9800),
-        Color(0xFFFF6348)
+    val sliceColors = listOf(
+        Color(0xFF5E69EE).copy(alpha = 0.8f).toArgb(), // indigo-violet
+        Color(0xFF4966D4).copy(alpha = 0.8f).toArgb(), // deep periwinkle
+        Color(0xFF3E8BEB).copy(alpha = 0.8f).toArgb(), // sky blue
+        Color(0xFF39AFEA).copy(alpha = 0.8f).toArgb(), // cyan-blue
+        Color(0xFF2FB7D5).copy(alpha = 0.8f).toArgb(), // teal-blue
+        Color(0xFF44C6DC).copy(alpha = 0.8f).toArgb()  // turquoise-blue
     )
-    val sliceColors = sumsThisMonth.mapIndexed { idx, _ ->
-        baseColors.getOrNull(idx)?.copy(alpha = 0.8f)?.toArgb()
-            ?: ColorTemplate.MATERIAL_COLORS[idx % ColorTemplate.MATERIAL_COLORS.size]
-    }
     val hasExpensesThisMonth = expensesWithCategory.any {
         val date = Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate()
         date.year == year && date.monthValue == month
