@@ -37,6 +37,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Environment
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.example.accountbook.model.Income
@@ -545,31 +546,55 @@ private fun DatePickerDialog(
     isIncomeTab: Boolean = false
 ) {
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate)
-    val primaryColor = if (isIncomeTab) Color(0xFFff4949) else MaterialTheme.colorScheme.primary
+    val primaryColor = if (isIncomeTab) Color(0xFFff4949) else Color(0xFF1976D2)
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = { onDateSelected(datePickerState.selectedDateMillis) }) {
-                Text("확인")
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(),
+            shape = MaterialTheme.shapes.large,
+            color = Color.White
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp)
+            ) {
+
+                Box(
+                    modifier = Modifier.offset(y = (-24).dp)
+                ) {
+                    DatePicker(
+                        state = datePickerState,
+                        headline = { },
+                        title = { },
+                        showModeToggle = false,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = DatePickerDefaults.colors(
+                            selectedDayContainerColor = primaryColor,
+                            todayContentColor = primaryColor,
+                            todayDateBorderColor = primaryColor,
+                            containerColor = Color.White
+                        )
+                    )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset(y = (-16).dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("취소")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = { onDateSelected(datePickerState.selectedDateMillis) }) {
+                        Text("확인", color = primaryColor)
+                    }
+                }
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("취소")
-            }
-        },
-        text = {
-            DatePicker(
-                state = datePickerState,
-                colors = DatePickerDefaults.colors(
-                    selectedDayContainerColor = primaryColor,
-                    todayContentColor = primaryColor,
-                    todayDateBorderColor = primaryColor
-                )
-            )
         }
-    )
+    }
 }
 
 @Composable
@@ -580,6 +605,7 @@ private fun ImageOptionsDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
         title = { Text("사진 선택") },
         confirmButton = {
             TextButton(onClick = onDismiss) {

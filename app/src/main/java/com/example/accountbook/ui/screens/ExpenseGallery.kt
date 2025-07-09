@@ -82,11 +82,10 @@ fun ExpenseGalleryScreen(
 
 /**
  * 갤러리의 메인 컨텐츠
- * 이제 개별 매개변수들을 받아서 처리하도록 변경되었습니다
  */
 @Composable
 private fun GalleryContent(
-    isLoading: Boolean,  // GalleryUiState 대신 개별 매개변수들을 받습니다
+    isLoading: Boolean,
     expensesWithImages: List<ExpenseWithCategory>,
     onImageClick: (ExpenseWithCategory) -> Unit,
     onRefresh: () -> Unit,
@@ -106,7 +105,7 @@ private fun GalleryContent(
                     Text(
                         text = "갤러리를 불러오는 중...",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = Color.White
                     )
                 }
             }
@@ -165,7 +164,7 @@ private fun GalleryHeader(
                     text = "갤러리",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Text(
                     text = "총 ${imageCount}개의 사진이 있습니다",
@@ -337,13 +336,13 @@ private fun GalleryImageItem(
 
                         // 카테고리
                         Surface(
-                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            color = Color.White,
                             shape = MaterialTheme.shapes.extraSmall
                         ) {
                             Text(
                                 text = expense.categoryName ?: "미분류",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
