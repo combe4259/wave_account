@@ -82,49 +82,54 @@ fun CalendarMainScreen(
         floatingActionButton = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalAlignment = Alignment.End
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.padding(top = 200.dp)
             ) {
                 // 파도 토글 FAB (LiquidFill 효과 포함)
-                Box(
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    //  LiquidFill 배경
-                    if (isWaveEnabled) {
-                        LiquidFill(
-                            progress = 0.8f, // 고정된 progress로 항상 파도 표시
-                            waveColor = MaterialTheme.colorScheme.tertiary,
+                if (selectedTab == 0){
+                    Box(
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        //  LiquidFill 배경
+                        if (isWaveEnabled) {
+                            LiquidFill(
+                                progress = 0.8f, // 고정된 progress로 항상 파도 표시
+                                waveColor = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clip(CircleShape)
+                            )
+
+                        }
+                        else LiquidFill(
+                            progress = 0.2f, // 고정된 progress로 항상 파도 표시
+                            waveColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f),
                             modifier = Modifier
                                 .matchParentSize()
                                 .clip(CircleShape)
                         )
-
-                    }
-                    else LiquidFill(
-                        progress = 0.2f, // 고정된 progress로 항상 파도 표시
-                        waveColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f),
-                        modifier = Modifier
-                            .matchParentSize()
-                            .clip(CircleShape)
-                    )
-                    // FAB 버튼
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape)
-                            .background(
-                                color = if (isWaveEnabled) Color.Transparent else Color.Transparent,
-                                shape = CircleShape
+                        // FAB 버튼
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                                .background(
+                                    color = if (isWaveEnabled) Color.Transparent else Color.Transparent,
+                                    shape = CircleShape
+                                )
+                                .clickable { isWaveEnabled = !isWaveEnabled },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "",
+                                fontSize = 24.sp,
+                                color = if (isWaveEnabled) Color.White else Color.Black
                             )
-                            .clickable { isWaveEnabled = !isWaveEnabled },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "",
-                            fontSize = 24.sp,
-                            color = if (isWaveEnabled) Color.White else Color.Black
-                        )
+                        }
                     }
+
                 }
+
 
                 //지출 추가
                 FloatingActionButton(
