@@ -53,7 +53,6 @@ data class MonthlyIncomeExpenseData(
     val allExpenses: List<ExpenseWithCategory>,
     val month: Calendar
 )
-)>
 
 // 달력 메인 구현
 @Composable
@@ -67,6 +66,9 @@ fun CalendarMainScreen(
     val incomesWithCategory by viewModel.allIncomesWithCategory.observeAsState(emptyList()) // 수입 데이터 추가
     var currentMonth by remember { mutableStateOf(Calendar.getInstance()) }
     var selectedTab by remember { mutableStateOf(0) } // 0: 달력, 1: 일일
+
+    //파도 토글
+    var isWaveEnabled by remember { mutableStateOf(true) }
 
     // 수입과 지출을 함께 계산하는 통합 데이터
     val monthlyData = remember(expensesWithCategory, incomesWithCategory, currentMonth) {
@@ -96,6 +98,7 @@ fun CalendarMainScreen(
             // 월 네비게이션 헤더
             MonthNavigationHeader(
                 currentMonth = currentMonth,
+                isWaveEnabled = isWaveEnabled,
                 onPreviousMonth = {
                     currentMonth = Calendar.getInstance().apply {
                         time = currentMonth.time
@@ -107,7 +110,8 @@ fun CalendarMainScreen(
                         time = currentMonth.time
                         add(Calendar.MONTH, 1)
                     }
-                }
+                },
+                onWaveToggle = { isWaveEnabled = !isWaveEnabled }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -161,7 +165,8 @@ fun CalendarMainScreen(
                     // 달력 탭
                     CalendarTabContent(
                         monthlyData = monthlyData,
-                        onDateSelected = onDateSelected
+                        onDateSelected = onDateSelected,
+                        isWaveEnabled = isWaveEnabled
                     )
                 }
                 1 -> {
@@ -267,7 +272,8 @@ fun IncomeExpenseSummaryCard(
 @Composable
 private fun CalendarTabContent(
     monthlyData: MonthlyIncomeExpenseData,
-    onDateSelected: (Long) -> Unit
+    onDateSelected: (Long) -> Unit,
+    isWaveEnabled: Boolean
 ) {
     Column {
         // 수입/지출 통합 요약 카드 사용
@@ -286,7 +292,8 @@ private fun CalendarTabContent(
             currentMonth = monthlyData.month,
             monthlyExpenses = monthlyData.dailyExpenseTotals,
             monthlyIncomes = monthlyData.dailyIncomeTotals,
-            onDateClick = onDateSelected
+            onDateClick = onDateSelected,
+            isWaveEnabled = isWaveEnabled
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -529,32 +536,57 @@ fun DailyIncomeItem(
         }
     }
 }
-
 @Composable
 fun MonthNavigationHeader(
     currentMonth: Calendar,
+    isWaveEnabled: Boolean,
     onPreviousMonth: () -> Unit,
-    onNextMonth: () -> Unit
+    onNextMonth: () -> Unit,
+    onWaveToggle: () -> Unit
 ) {
     val monthFormat = SimpleDateFormat("yyyy년 MM월", Locale.KOREA)
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = onPreviousMonth) {
-            Icon(Icons.Default.KeyboardArrowLeft, contentDescription = "이전 달")
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onPreviousMonth) {
+                Icon(Icons.Default.KeyboardArrowLeft, contentDescription = "이전 달")
+            }
+
+            Text(
+                text = monthFormat.format(currentMonth.time),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            IconButton(onClick = onNextMonth) {
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "다음 달")
+            }
         }
 
-        Text(
-            text = monthFormat.format(currentMonth.time),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-
-        IconButton(onClick = onNextMonth) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "다음 달")
+        // 파도 토글 버튼
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            IconButton(
+                onClick = onWaveToggle,
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(
+                        color = Color.Transparent,
+                        shape = CircleShape
+                    )
+            ) {
+                Text(
+                    text = "🌊",
+                    fontSize = 24.sp,
+                    modifier = Modifier.padding(4.dp)
+                )
+            }
         }
     }
 }
@@ -589,7 +621,8 @@ fun CalendarGrid(
     currentMonth: Calendar,
     monthlyExpenses: Map<Int, Double>,
     monthlyIncomes: Map<Int, Double>,
-    onDateClick: (Long) -> Unit
+    onDateClick: (Long) -> Unit,
+    isWaveEnabled: Boolean
 ) {
     val daysInMonth = getDaysInMonth(currentMonth)
 
@@ -603,7 +636,8 @@ fun CalendarGrid(
                 dayInfo = dayInfo,
                 totalExpense = monthlyExpenses[dayInfo.day] ?: 0.0,
                 totalIncome = monthlyIncomes[dayInfo.day] ?:0.0,
-                onDateClick = onDateClick
+                onDateClick = onDateClick,
+                isWaveEnabled = isWaveEnabled
             )
         }
     }
@@ -614,7 +648,8 @@ fun CalendarDay(
     dayInfo: DayInfo,
     totalExpense: Double,
     totalIncome: Double,
-    onDateClick: (Long) -> Unit
+    onDateClick: (Long) -> Unit,
+    isWaveEnabled: Boolean
 ) {
     val isToday = isToday(dayInfo.date)
     val hasExpense = totalExpense > 0
@@ -640,18 +675,27 @@ fun CalendarDay(
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
-            // 오늘 날짜일 때 상단 바 색상
-            val progress = (totalExpense / 30_000.0).toFloat().coerceAtMost(1f)
-            val waveColor = if (totalExpense > 30_000.0)
-                Color(0xFFD8837F)
-            else
-                MaterialTheme.colorScheme.tertiary
-            LiquidFill(
-                progress = progress,
-                waveColor = waveColor,
-                modifier = Modifier
-                    .matchParentSize()          // fills the whole cell
-            )
+
+            if(isWaveEnabled && hasExpense){
+                // 오늘 날짜일 때 상단 바 색상
+                //파도 기능
+                //FIXME
+                //val progress = (totalExpense / 30_000.0).toFloat().coerceAtMost(1f)
+                val progress = (totalExpense / 30_000.0).toFloat()
+
+                //FIXME: 그냥 색 통일
+//            val waveColor = if (totalExpense > 30_000.0)
+//                Color(0xFFD8837F)
+//            else
+//                MaterialTheme.colorScheme.tertiary
+                val waveColor = MaterialTheme.colorScheme.tertiary
+                LiquidFill(
+                    progress = progress,
+                    waveColor = waveColor,
+                    modifier = Modifier.matchParentSize()          // fills the whole cell
+                )
+            }
+
 
             if (isToday) {
                 Box(
