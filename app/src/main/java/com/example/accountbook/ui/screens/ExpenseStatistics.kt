@@ -70,9 +70,10 @@ fun OverviewTab(
 ) {
 
     val legendRows  = sumsThisMonth.size + 1
-    val legendH     = legendRows * 50      // 28 dp per row
+    val spacerH = 30
+    val legendH     = (legendRows + 1) * 32      // 28 dp per row
     val pieH        = 240                  // keep the graphic 240 dp
-    val pieSectionH = (pieH + legendH).dp
+    val pieSectionH = (pieH + spacerH + legendH).dp
 
     Column(
         modifier = Modifier
