@@ -39,7 +39,6 @@ fun SecondLineChartDemo(
     viewModel: ExpenseViewModel = viewModel()
 ) {
     // 1) Observe all expenses
-    //val expenses by viewModel.allExpenses.observeAsState(emptyList())
     val expensesWithCategory by viewModel.allExpensesWithCategory.observeAsState(initial = emptyList())
 
     // 2) Compute date info

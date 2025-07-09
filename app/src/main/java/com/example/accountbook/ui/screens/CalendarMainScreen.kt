@@ -714,17 +714,7 @@ fun CalendarDay(
         ) {
 
             if(isWaveEnabled && hasExpense){
-                // 오늘 날짜일 때 상단 바 색상
-                //파도 기능
-                //FIXME
-                //val progress = (totalExpense / 30_000.0).toFloat().coerceAtMost(1f)
                 val progress = (totalExpense / dailyBudget).toFloat()
-
-                //FIXME: 그냥 색 통일
-//            val waveColor = if (totalExpense > 30_000.0)
-//                Color(0xFFD8837F)
-//            else
-//                MaterialTheme.colorScheme.tertiary
                 val waveColor = MaterialTheme.colorScheme.tertiary
                 LiquidFill(
                     progress = progress,

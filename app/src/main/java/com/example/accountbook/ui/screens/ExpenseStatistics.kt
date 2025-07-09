@@ -247,14 +247,6 @@ fun ExpenseStatisticsScreen(
 
         verticalArrangement = Arrangement.spacedBy(12.dp) // space between charts
     ) {
-//        Text(
-//            text = "월별 지출현황",
-//            style = MaterialTheme.typography.headlineSmall,
-//            fontWeight = FontWeight.Bold,
-//            textAlign = TextAlign.Center,
-//            modifier = Modifier.padding(bottom = 4.dp)
-//                .fillMaxWidth()
-//        )
         TabRow(
             selectedTabIndex = selectedTab,
             containerColor   = Color.White,
