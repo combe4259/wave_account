@@ -35,6 +35,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -245,25 +246,43 @@ fun MonthlyGoalRow(
     var showDialog by remember { mutableStateOf(false) }
     var input by remember { mutableStateOf(monthlyGoal.toString()) }
 
-    Row(
-        modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Text(
-            text = "월별 소비 목표",
-            style = MaterialTheme.typography.titleMedium
-        )
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                text = "%,d원".format(monthlyGoal),
-                style = MaterialTheme.typography.bodyLarge
+                text = "월별 소비 목표",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(Modifier.width(8.dp))
-            TextButton(onClick = { showDialog = true }) {
-                Text("수정")
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "%,d원".format(monthlyGoal),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                OutlinedButton(
+                    onClick = { showDialog = true },
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text("수정")
+                }
             }
         }
     }
@@ -272,6 +291,7 @@ fun MonthlyGoalRow(
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
+            containerColor = Color.White,
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -303,21 +323,11 @@ fun MonthlyGoalCard(
     onGoalChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    OutlinedCard(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape  = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        colors = CardDefaults.outlinedCardColors(    // 내부 배경 없음
-            containerColor = Color.Transparent,
-            contentColor   = MaterialTheme.colorScheme.onSurface
-        )
-    ) {
+
         MonthlyGoalRow(                 // 앞서 만든 Row 재사용
             monthlyGoal = goal,
             onUpdateGoal = onGoalChange,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
         )
-    }
+
 }

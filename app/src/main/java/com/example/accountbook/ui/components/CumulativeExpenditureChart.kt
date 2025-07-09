@@ -110,7 +110,7 @@ fun SecondLineChartDemo(
                         axisRight.isEnabled = false
                         xAxis.isEnabled = false
                         legend.isEnabled = false
-                        marker = SimpleLineMarker(ctx, labels)
+//                        marker = SimpleLineMarker(ctx, labels)
                         axisLeft.apply {
                             axisMinimum = 0f
                             axisMaximum = axisTop

@@ -79,7 +79,8 @@ fun AddCategoryDialog(
                 CategoryNameInput(
                     name = categoryName,
                     onNameChange = { categoryName = it },
-                    isValid = isNameValid
+                    isValid = isNameValid,
+                    primaryColor = primaryColor
                 )
 
                 // 아이콘 선택 섹션
@@ -157,7 +158,8 @@ private fun CategoryPreview(
 private fun CategoryNameInput(
     name: String,
     onNameChange: (String) -> Unit,
-    isValid: Boolean
+    isValid: Boolean,
+    primaryColor: Color = MaterialTheme.colorScheme.primary
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
@@ -171,7 +173,12 @@ private fun CategoryNameInput(
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("예: 건강, 여행") },
             isError = name.isNotEmpty() && !isValid,
-            singleLine = true
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = primaryColor,
+                focusedLabelColor = primaryColor,
+                cursorColor = primaryColor
+            )
         )
 
         if (name.isNotEmpty() && !isValid) {

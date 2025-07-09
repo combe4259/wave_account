@@ -172,7 +172,7 @@ fun ProjectionTab(
         )
 
         ChartHeaderWithMonthToggle(
-            title = "월별 지출 누적 비교",
+            title = "누적 지출 비교",
             selectedMonth = compareMonth,
             earliestMonth = earliestMonth,
             onMonthChange = { compareMonth = it}

@@ -83,7 +83,7 @@ fun CalendarMainScreen(
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.End,
-                modifier = Modifier.padding(top = 200.dp)
+                modifier = Modifier.padding(bottom = 16.dp)
             ) {
                 // 파도 토글 FAB (LiquidFill 효과 포함)
                 if (selectedTab == 0){
