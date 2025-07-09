@@ -656,6 +656,7 @@ fun DeleteConfirmDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
         title = {
             Text(
                 text = "$itemType 내역 삭제",
