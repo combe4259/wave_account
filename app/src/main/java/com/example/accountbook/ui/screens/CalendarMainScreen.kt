@@ -22,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -78,15 +79,63 @@ fun CalendarMainScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.onPrimary,
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { onDateSelected(System.currentTimeMillis()) },
-                containerColor = MaterialTheme.colorScheme.primary
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.End
             ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = "지출 추가",
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
+                // 파도 토글 FAB (LiquidFill 효과 포함)
+                Box(
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    //  LiquidFill 배경
+                    if (isWaveEnabled) {
+                        LiquidFill(
+                            progress = 0.8f, // 고정된 progress로 항상 파도 표시
+                            waveColor = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clip(CircleShape)
+                        )
+
+                    }
+                    else LiquidFill(
+                        progress = 0.2f, // 고정된 progress로 항상 파도 표시
+                        waveColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f),
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clip(CircleShape)
+                    )
+                    // FAB 버튼
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .background(
+                                color = if (isWaveEnabled) Color.Transparent else Color.Transparent,
+                                shape = CircleShape
+                            )
+                            .clickable { isWaveEnabled = !isWaveEnabled },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "",
+                            fontSize = 24.sp,
+                            color = if (isWaveEnabled) Color.White else Color.Black
+                        )
+                    }
+                }
+
+                //지출 추가
+                FloatingActionButton(
+                    onClick = { onDateSelected(System.currentTimeMillis()) },
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "지출 추가",
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
             }
         }
     ) { paddingValues ->
@@ -253,7 +302,7 @@ fun IncomeExpenseSummaryCard(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = "잔액",
+                    text = "총합",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -567,27 +616,6 @@ fun MonthNavigationHeader(
             }
         }
 
-        // 파도 토글 버튼
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            IconButton(
-                onClick = onWaveToggle,
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(
-                        color = Color.Transparent,
-                        shape = CircleShape
-                    )
-            ) {
-                Text(
-                    text = "🌊",
-                    fontSize = 24.sp,
-                    modifier = Modifier.padding(4.dp)
-                )
-            }
-        }
     }
 }
 
