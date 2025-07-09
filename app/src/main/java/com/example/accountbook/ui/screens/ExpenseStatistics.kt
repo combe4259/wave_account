@@ -53,6 +53,8 @@ import com.example.accountbook.dto.ExpenseWithCategory
 import com.example.accountbook.ui.components.BottomStats
 import com.example.accountbook.ui.components.ChartHeaderWithMonthToggle
 import com.example.accountbook.ui.components.FirstLineChartDemo
+import com.example.accountbook.ui.components.MonthlyGoalCard
+import com.example.accountbook.ui.components.MonthlyGoalRow
 import com.example.accountbook.ui.components.PieChartByCategory
 import com.example.accountbook.ui.components.SecondLineChartDemo
 import java.time.YearMonth
@@ -139,6 +141,8 @@ fun ProjectionTab(
     expenses: List<ExpenseWithCategory>,
     sumsThisMonth: List<Pair<String, Float>>,
     sliceColors: List<Int>,
+    monthlyGoal: Int,
+    onGoalChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     // ◀ 이전 달이 기본값
@@ -159,16 +163,13 @@ fun ProjectionTab(
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
-//        Text(
-//            "누적 지출 금액",
-//            style = MaterialTheme.typography.headlineSmall,
-//            fontWeight = FontWeight.Bold,
-//            textAlign = TextAlign.Center,
-//            modifier = Modifier.fillMaxWidth()
-//                .padding(top = 15.dp)
-//        )
+        MonthlyGoalCard(
+            goal = monthlyGoal,
+            onGoalChange = onGoalChange
+        )
+
         ChartHeaderWithMonthToggle(
             title = "월별 지출 누적 비교",
             selectedMonth = compareMonth,
@@ -179,6 +180,7 @@ fun ProjectionTab(
         SecondLineChartDemo(
             headerMonth = currentMonth,
             compareMonth = compareMonth,
+            monthlyGoal = monthlyGoal,
             viewModel   = viewModel,
             modifier    = Modifier
                 .fillMaxWidth()
@@ -196,6 +198,8 @@ fun ProjectionTab(
 @Composable
 fun ExpenseStatisticsScreen(
     modifier: Modifier = Modifier,
+    monthlyGoal: Int,
+    onGoalChange: (Int) -> Unit,
     viewModel: ExpenseViewModel = viewModel()
 ) {
     var currentMonth by remember { mutableStateOf(Calendar.getInstance()) }
@@ -284,7 +288,9 @@ fun ExpenseStatisticsScreen(
                 viewModel      = viewModel,
                 expenses       = expensesWithCategory,
                 sumsThisMonth  = sumsThisMonth,
-                sliceColors    = sliceColors
+                sliceColors    = sliceColors,
+                monthlyGoal = monthlyGoal,
+                onGoalChange = onGoalChange
             )
         }
     }

@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.Color
 import com.example.accountbook.view.ExpenseViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -73,6 +74,7 @@ fun AccountBookApp() {
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Calendar) }
     // ViewModel을 앱 레벨에서 생성 -> 모든 화면에서 동일한 인스턴스 사용
     val viewModel: ExpenseViewModel = viewModel()
+    var monthlyGoal by rememberSaveable { mutableStateOf(1_000_000) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.onPrimary,
@@ -88,42 +90,13 @@ fun AccountBookApp() {
         AppContent(
             currentScreen = currentScreen,
             viewModel = viewModel,
+            monthlyGoal = monthlyGoal,
+            onGoalChange = { monthlyGoal = it},
             onNavigateToScreen = { screen -> currentScreen = screen },
             modifier = Modifier.padding(paddingValues)
         )
     }
 }
-
-//// TopBar
-//@Composable
-//private fun AppTopBar(
-//    currentScreen: Screen,
-//    shouldShowTopBar: Boolean
-//) {
-//    if (shouldShowTopBar) {
-//        Surface(
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .height(64.dp),
-//            color = MaterialTheme.colorScheme.primary,
-//            tonalElevation = 4.dp
-//        ) {
-//            Box(
-//                modifier = Modifier
-//                    .fillMaxSize()
-//                    .padding(horizontal = 16.dp),
-//                contentAlignment = Alignment.Center
-//            ) {
-//                Text(
-//                    text = currentScreen.title,
-//                    style = MaterialTheme.typography.titleLarge,
-//                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-//                    fontWeight = FontWeight.Medium
-//                )
-//            }
-//        }
-//    }
-//}
 
 // BottomBar
 @Composable
@@ -181,6 +154,8 @@ private fun AppBottomBar(
 private fun AppContent(
     currentScreen: Screen,
     viewModel: ExpenseViewModel,
+    monthlyGoal: Int,
+    onGoalChange: (Int) -> Unit,
     onNavigateToScreen: (Screen) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -192,6 +167,7 @@ private fun AppContent(
                 CalendarMainScreen(
                     viewModel = viewModel,
                     modifier = Modifier.fillMaxSize(),
+                    monthlyGoal = monthlyGoal,
                     onDateSelected = { selectedDate ->
                         // 달력에서 날짜 선택 시 해당 날짜의 상세 화면으로 이동
                         onNavigateToScreen(Screen.DailyDetail(selectedDate))
@@ -208,6 +184,8 @@ private fun AppContent(
 
             is Screen.Statistics -> {
                 ExpenseStatisticsScreen(
+                    monthlyGoal = monthlyGoal,
+                    onGoalChange = onGoalChange,
                     modifier = Modifier.fillMaxSize()
                 )
             }

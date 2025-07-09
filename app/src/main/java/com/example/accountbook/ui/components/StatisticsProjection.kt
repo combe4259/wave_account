@@ -1,5 +1,6 @@
 package com.example.accountbook.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,14 +22,28 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Calendar
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.example.accountbook.dto.ExpenseWithCategory
@@ -212,5 +227,91 @@ fun ChartHeaderWithMonthToggle(
                 tint = if (next.before(limit)) Color.Black else Color.LightGray
             )
         }
+    }
+}
+
+@Composable
+fun MonthlyGoalRow(
+    monthlyGoal: Int,                // 현재 목표 금액
+    onUpdateGoal: (Int) -> Unit,     // 새 목표 반영 콜백
+    modifier: Modifier = Modifier
+) {
+    var showDialog by remember { mutableStateOf(false) }
+    var input by remember { mutableStateOf(monthlyGoal.toString()) }
+
+    Row(
+        modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "월별 소비 목표",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "%,d원".format(monthlyGoal),
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Spacer(Modifier.width(8.dp))
+            TextButton(onClick = { showDialog = true }) {
+                Text("수정")
+            }
+        }
+    }
+
+    // ────────── 수정 다이얼로그 ──────────
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        input.toIntOrNull()?.let { onUpdateGoal(it) }
+                        showDialog = false
+                    }
+                ) { Text("확인") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) { Text("취소") }
+            },
+            title = { Text("월별 소비 목표 수정") },
+            text = {
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = { input = it.filter { ch -> ch.isDigit() } },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    label = { Text("목표 금액 (원)") }
+                )
+            }
+        )
+    }
+}
+
+@Composable
+fun MonthlyGoalCard(
+    goal: Int,
+    onGoalChange: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape  = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        colors = CardDefaults.outlinedCardColors(    // 내부 배경 없음
+            containerColor = Color.Transparent,
+            contentColor   = MaterialTheme.colorScheme.onSurface
+        )
+    ) {
+        MonthlyGoalRow(                 // 앞서 만든 Row 재사용
+            monthlyGoal = goal,
+            onUpdateGoal = onGoalChange,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+        )
     }
 }

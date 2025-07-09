@@ -35,6 +35,7 @@ fun SecondLineChartDemo(
     modifier: Modifier = Modifier,
     headerMonth: Calendar,
     compareMonth: Calendar,
+    monthlyGoal: Int,
     viewModel: ExpenseViewModel = viewModel()
 ) {
     // 1) Observe all expenses
@@ -107,14 +108,14 @@ fun SecondLineChartDemo(
                         marker = SimpleLineMarker(ctx, labels)
                         axisLeft.apply {
                             axisMinimum = 0f
-                            axisMaximum = 1_100_000f
+                            axisMaximum = monthlyGoal * 1.1f
                             spaceTop = 15f
                         }
 
                         // 5a) horizontal limit line at 1,000,000
                         axisLeft.removeAllLimitLines()
                         axisLeft.addLimitLine(
-                            LimitLine(1_000_000f, "월 최대")
+                            LimitLine(monthlyGoal.toFloat(), "월 최대")
                                 .apply {
                                     lineColor = red.copy(alpha = 0.6f).toArgb()
                                     lineWidth = 2f
@@ -126,6 +127,18 @@ fun SecondLineChartDemo(
                     }
                 },
                 update = { chart ->
+                    chart.axisLeft.apply {
+                        removeAllLimitLines()
+                        axisMaximum = monthlyGoal * 1.1f
+                        addLimitLine(
+                            LimitLine(monthlyGoal.toFloat(), "월 최대").apply {
+                                lineColor = red.copy(alpha = 0.6f).toArgb()
+                                lineWidth = 2f
+                                textColor = red.toArgb()
+                                textSize = 12f
+                            }
+                        )
+                    }
                     val setCurr = LineDataSet(currEntries, "이번 달 누적").apply {
                         mode = LineDataSet.Mode.CUBIC_BEZIER
                         setDrawCircles(false)
@@ -153,7 +166,7 @@ fun SecondLineChartDemo(
 
                     chart.data = LineData(dataSets)
                     chart.invalidate()
-//                    chart.animateX(400)
+                    chart.animateX(400)
                 }
             )
         }

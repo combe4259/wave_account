@@ -59,6 +59,7 @@ data class MonthlyIncomeExpenseData(
 @Composable
 fun CalendarMainScreen(
     viewModel: ExpenseViewModel,
+    monthlyGoal: Int,
     modifier: Modifier = Modifier,
     onDateSelected: (Long) -> Unit,
     onNavigateToAdd: ((Long) -> Unit)? = null
@@ -215,7 +216,8 @@ fun CalendarMainScreen(
                     CalendarTabContent(
                         monthlyData = monthlyData,
                         onDateSelected = onDateSelected,
-                        isWaveEnabled = isWaveEnabled
+                        isWaveEnabled = isWaveEnabled,
+                        monthlyGoal = monthlyGoal
                     )
                 }
                 1 -> {
@@ -322,7 +324,8 @@ fun IncomeExpenseSummaryCard(
 private fun CalendarTabContent(
     monthlyData: MonthlyIncomeExpenseData,
     onDateSelected: (Long) -> Unit,
-    isWaveEnabled: Boolean
+    isWaveEnabled: Boolean,
+    monthlyGoal: Int
 ) {
     Column {
         // 수입/지출 통합 요약 카드 사용
@@ -342,7 +345,8 @@ private fun CalendarTabContent(
             monthlyExpenses = monthlyData.dailyExpenseTotals,
             monthlyIncomes = monthlyData.dailyIncomeTotals,
             onDateClick = onDateSelected,
-            isWaveEnabled = isWaveEnabled
+            isWaveEnabled = isWaveEnabled,
+            monthlyGoal = monthlyGoal
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -650,9 +654,12 @@ fun CalendarGrid(
     monthlyExpenses: Map<Int, Double>,
     monthlyIncomes: Map<Int, Double>,
     onDateClick: (Long) -> Unit,
-    isWaveEnabled: Boolean
+    isWaveEnabled: Boolean,
+    monthlyGoal: Int
 ) {
     val daysInMonth = getDaysInMonth(currentMonth)
+    val daysCount   = currentMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
+    val dailyBudget = monthlyGoal.toFloat() / daysCount
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(7),
@@ -665,6 +672,7 @@ fun CalendarGrid(
                 totalExpense = monthlyExpenses[dayInfo.day] ?: 0.0,
                 totalIncome = monthlyIncomes[dayInfo.day] ?:0.0,
                 onDateClick = onDateClick,
+                dailyBudget = dailyBudget,
                 isWaveEnabled = isWaveEnabled
             )
         }
@@ -677,6 +685,7 @@ fun CalendarDay(
     totalExpense: Double,
     totalIncome: Double,
     onDateClick: (Long) -> Unit,
+    dailyBudget: Float,
     isWaveEnabled: Boolean
 ) {
     val isToday = isToday(dayInfo.date)
@@ -709,7 +718,7 @@ fun CalendarDay(
                 //파도 기능
                 //FIXME
                 //val progress = (totalExpense / 30_000.0).toFloat().coerceAtMost(1f)
-                val progress = (totalExpense / 30_000.0).toFloat()
+                val progress = (totalExpense / dailyBudget).toFloat()
 
                 //FIXME: 그냥 색 통일
 //            val waveColor = if (totalExpense > 30_000.0)
