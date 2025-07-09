@@ -47,6 +47,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.example.accountbook.dto.ExpenseWithCategory
+import java.time.Year
 import java.time.YearMonth
 import kotlin.math.roundToInt
 
@@ -187,6 +188,10 @@ fun ChartHeaderWithMonthToggle(
         Calendar.getInstance().apply { set(Calendar.DAY_OF_MONTH, 1) }
     }
 
+    val earliestDataMonth = remember(earliestMonth) {
+        (earliestMonth.clone() as Calendar).apply { add(Calendar.MONTH, 1) }
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -196,10 +201,11 @@ fun ChartHeaderWithMonthToggle(
             modifier = Modifier.weight(1f)
         )
 
-        val leftEnabled = selectedMonth.after(earliestMonth)
+        val leftEnabled = selectedMonth.after(earliestDataMonth)
+
         IconButton(onClick = {
             onMonthChange((selectedMonth.clone() as Calendar).apply { add(Calendar.MONTH, -1) })
-            },
+        },
             enabled = leftEnabled) {
             Icon(Icons.Default.ChevronLeft, contentDescription = "이전 달",
                 tint = if (leftEnabled) Color.Black else Color.LightGray)

@@ -68,12 +68,6 @@ fun PieChartByCategory(
         .toList()
         .sortedByDescending { it.second }
     val totalForMarker = sumsByCat.sumOf { it.second.toDouble() }.toFloat()
-//    val entries = remember(currentMonth, sumsByCat) {
-//        sumsByCat.mapNotNull { (cat, sum) ->
-//            if (sum > 0f) PieEntry(sum, cat) else null
-//        }
-//    }
-
     val top5 = sumsByCat.take(5)
     val etcSum = sumsByCat.drop(5).sumOf { it.second.toDouble() }.toFloat()
     val pieEntries = buildList {

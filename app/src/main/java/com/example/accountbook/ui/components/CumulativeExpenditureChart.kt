@@ -82,6 +82,12 @@ fun SecondLineChartDemo(
     val primaryInt   = primary.toArgb()
     val red = Color(0xFFFF0000)
 
+    val maxSpent = maxOf(
+        currCum.maxOrNull() ?: 0f,
+        cmpCum .maxOrNull() ?: 0f
+    )
+    val axisTop  = maxOf(maxSpent, monthlyGoal.toFloat()) * 1.1f   // 10 % 여유
+
     fun makeGradientPrevious(ctx: Context, base: Color): Drawable {
         val startColor = base.copy(alpha = 0.1f).toArgb()
         val endColor = base.copy(alpha = 0.5f).toArgb()
@@ -107,7 +113,7 @@ fun SecondLineChartDemo(
                         marker = SimpleLineMarker(ctx, labels)
                         axisLeft.apply {
                             axisMinimum = 0f
-                            axisMaximum = monthlyGoal * 1.1f
+                            axisMaximum = axisTop
                             spaceTop = 15f
                         }
 
@@ -128,7 +134,7 @@ fun SecondLineChartDemo(
                 update = { chart ->
                     chart.axisLeft.apply {
                         removeAllLimitLines()
-                        axisMaximum = monthlyGoal * 1.1f
+                        axisMaximum = axisTop
                         addLimitLine(
                             LimitLine(monthlyGoal.toFloat(), "월 최대").apply {
                                 lineColor = red.copy(alpha = 0.6f).toArgb()
