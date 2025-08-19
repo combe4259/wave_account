@@ -24,7 +24,8 @@ import kotlinx.coroutines.launch
 
 
 class ExpenseViewModel(application: Application) : AndroidViewModel(application) {
-    var statsScroll by mutableStateOf(0)
+    // UI 상태는 제거 - SavedStateHandle 또는 UI에서 직접 관리
+    // var statsScroll by mutableStateOf(0) // 삭제됨
 
     // Repository
     private val expenseRepository: ExpenseRepository

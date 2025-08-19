@@ -2,11 +2,12 @@ package com.example.accountbook.view
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.asFlow
 import com.example.accountbook.dto.ExpenseWithCategory
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
 import com.example.accountbook.repository.ExpenseRepository
 
 // 갤러리 화면의 상태를 관리
@@ -30,13 +31,15 @@ class ExpenseGalleryViewModel(
 
     private fun loadExpensesWithImages() {
         _uiState.value = _uiState.value?.copy(isLoading = true)
-
-        // ExpenseWithCategory 데이터 사용 - 타입 일치!
-        repository.getExpensesWithPhotosAndCategory().observeForever { expenses ->
-            _uiState.value = _uiState.value?.copy(
-                isLoading = false,
-                expensesWithImages = expenses ?: emptyList()  // 이제 타입이 맞음!
-            )
+        
+        // observeForever 대신 viewModelScope에서 Flow 수집
+        viewModelScope.launch {
+            repository.getExpensesWithPhotosAndCategory().asFlow().collect { expenses ->
+                _uiState.value = _uiState.value?.copy(
+                    isLoading = false,
+                    expensesWithImages = expenses
+                )
+            }
         }
     }
 

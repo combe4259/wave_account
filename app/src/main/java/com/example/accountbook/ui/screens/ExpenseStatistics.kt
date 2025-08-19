@@ -204,12 +204,10 @@ fun ExpenseStatisticsScreen(
     viewModel: ExpenseViewModel = viewModel()
 ) {
     var currentMonth by remember { mutableStateOf(Calendar.getInstance()) }
-    val scrollState = rememberScrollState(initial = viewModel.statsScroll)
-    DisposableEffect(Unit) {
-        onDispose {    // called when you navigate away
-            viewModel.statsScroll = scrollState.value
-        }
-    }
+    // 스크롤 상태를 UI에서 직접 관리 (SavedState로 화면 회전 대응)
+    val scrollState = rememberScrollState(
+        initial = rememberSaveable { 0 }
+    )
     val expensesWithCategory by viewModel.allExpensesWithCategory.observeAsState(initial = emptyList())
     val year  = currentMonth.get(Calendar.YEAR)
     val month = currentMonth.get(Calendar.MONTH) + 1

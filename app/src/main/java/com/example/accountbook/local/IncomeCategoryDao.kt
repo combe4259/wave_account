@@ -33,4 +33,12 @@ interface IncomeCategoryDao {
 
     @Query("SELECT * FROM income_categories WHERE name = :name")
     suspend fun getCategoryByName(name: String): IncomeCategory?
+    
+    // ID로 카테고리 삭제
+    @Query("DELETE FROM income_categories WHERE id = :id")
+    suspend fun deleteCategoryById(id: Long)
+    
+    // 카테고리 이름 중복 체크
+    @Query("SELECT EXISTS(SELECT 1 FROM income_categories WHERE name = :name)")
+    suspend fun isCategoryNameExists(name: String): Boolean
 }

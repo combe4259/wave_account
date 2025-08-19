@@ -34,5 +34,13 @@ interface ExpenseCategoryDao {
     // 이름으로 카테고리 조회 중복 체크용
     @Query("SELECT * FROM expense_categories WHERE name = :name")
     suspend fun getCategoryByName(name: String): ExpenseCategory?
+    
+    // ID로 카테고리 삭제
+    @Query("DELETE FROM expense_categories WHERE id = :id")
+    suspend fun deleteCategoryById(id: Long)
+    
+    // 카테고리 이름 중복 체크
+    @Query("SELECT EXISTS(SELECT 1 FROM expense_categories WHERE name = :name)")
+    suspend fun isCategoryNameExists(name: String): Boolean
 
 }

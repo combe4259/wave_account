@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import dagger.hilt.android.AndroidEntryPoint
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,10 +31,15 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.Color
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.accountbook.presentation.main.MainViewModel
+import com.example.accountbook.presentation.main.MainTab
+import com.example.accountbook.ui.screens.*
 import com.example.accountbook.view.ExpenseViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.accountbook.ui.screens.*
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) { //이 시점에서 앱의 기본 설정과 UI 구성이 이루어짐
         super.onCreate(savedInstanceState)
@@ -72,9 +78,13 @@ val bottomNavItems = listOf(
 fun AccountBookApp() {
     // 화면 상태를 중앙에서 관리하여 예측 가능한 네비게이션 제공
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Calendar) }
-    // ViewModel을 앱 레벨에서 생성 -> 모든 화면에서 동일한 인스턴스 사용
-    val viewModel: ExpenseViewModel = viewModel()
-    var monthlyGoal by rememberSaveable { mutableStateOf(1_000_000) }
+    // Hilt로 ViewModel 주입
+    val mainViewModel: MainViewModel = hiltViewModel()
+    val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
+    val transactions by mainViewModel.monthlyTransactions.collectAsStateWithLifecycle()
+    
+    // 기존 ExpenseViewModel도 일단 유지 (점진적 마이그레이션)
+    val expenseViewModel: ExpenseViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.onPrimary,
@@ -89,9 +99,9 @@ fun AccountBookApp() {
         // 메인 콘텐츠 영역
         AppContent(
             currentScreen = currentScreen,
-            viewModel = viewModel,
-            monthlyGoal = monthlyGoal,
-            onGoalChange = { monthlyGoal = it},
+            viewModel = expenseViewModel,  // 일단 기존 ViewModel 사용
+            monthlyGoal = mainViewModel.monthlyBudget,
+            onGoalChange = { mainViewModel.updateMonthlyBudget(it) },
             onNavigateToScreen = { screen -> currentScreen = screen },
             modifier = Modifier.padding(paddingValues)
         )

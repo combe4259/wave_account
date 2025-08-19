@@ -24,12 +24,11 @@ interface ExpenseDao {
     """)
     fun getAllExpensesWithCategory(): LiveData<List<ExpenseWithCategory>>
 
-    //FIXME: 없어도 될듯
-    // 사진이 있는 지출만 조회
+    // 사진이 있는 지출만 조회 (카테고리 정보 없음)
     @Query("SELECT * FROM expenses WHERE photoUri IS NOT NULL ORDER BY date DESC")
     fun getExpensesWithPhotos(): LiveData<List<Expense>>
 
-    // 사진이 있는 지출만 조회 카테고리 정보 포함
+    // 사진이 있는 지출만 조회 (카테고리 정보 포함)
     @Query("""
         SELECT e.*, c.name as categoryName, c.iconName 
         FROM expenses e 
@@ -41,7 +40,7 @@ interface ExpenseDao {
 
     // 특정 지출 조회
     @Query("SELECT * FROM expenses WHERE id = :id")
-    suspend fun getExpenseById(id: Long): Expense? // 조회 결과 없을 수도 있기 때문에 nullable 타입 사용
+    suspend fun getExpenseById(id: Long): Expense?
 
     // 지출 추가
     @Insert
@@ -59,7 +58,7 @@ interface ExpenseDao {
     @Query("DELETE FROM expenses WHERE id = :id")
     suspend fun deleteExpenseById(id: Long)
 
-    // 특정 카테고리의 지출들 조회
+    // 특정 카테고리의 지출들 조회 (카테고리 정보 포함)
     @Query("""
         SELECT e.*, c.name as categoryName, c.iconName 
         FROM expenses e 
@@ -69,8 +68,7 @@ interface ExpenseDao {
     """)
     fun getExpensesByCategory(categoryId: Long): LiveData<List<ExpenseWithCategory>>
 
-    // 특정 날짜 범위의 지출들 조회
-    // 월별 지출 내역이나 특정 기간 분석
+    // 날짜 범위의 지출들 조회 (카테고리 정보 포함)
     @Query("""
         SELECT e.*, c.name as categoryName, c.iconName 
         FROM expenses e 

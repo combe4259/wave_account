@@ -12,7 +12,7 @@ import com.example.accountbook.model.IncomeCategory
 
 @Database(
     entities = [Expense::class, ExpenseCategory::class, Income::class, IncomeCategory::class], //DB에 포함될 테이블
-    version = 4,
+    version = 5,  // 버전 업데이트
     exportSchema = false
 )
 //데이터베이스의 진입점
