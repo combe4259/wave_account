@@ -17,7 +17,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.accountbook.dto.ExpenseWithCategory
 import com.example.accountbook.dto.IncomeWithCategory
-import com.example.accountbook.view.ExpenseViewModel
+import com.example.accountbook.presentation.adapter.ViewModelAdapter
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -33,7 +33,7 @@ import com.example.accountbook.ui.theme.MainColor
 @Composable
 fun DailyExpenseScreen(
     selectedDate: Long,
-    viewModel: ExpenseViewModel,
+    viewModel: ViewModelAdapter,
     modifier: Modifier = Modifier,
     onNavigateBack: () -> Unit,
     onNavigateToAdd: (Long) -> Unit

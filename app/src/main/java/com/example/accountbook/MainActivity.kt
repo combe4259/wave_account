@@ -18,6 +18,8 @@ import com.example.accountbook.ui.theme.AccountBookTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Today
@@ -35,9 +37,18 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.accountbook.presentation.main.MainViewModel
 import com.example.accountbook.presentation.main.MainTab
+import com.example.accountbook.presentation.main.MainUiState
+import com.example.accountbook.domain.model.Transaction
+import com.example.accountbook.ui.screens.CalendarMainScreen
+import com.example.accountbook.presentation.adapter.ViewModelAdapter
 import com.example.accountbook.ui.screens.*
-import com.example.accountbook.view.ExpenseViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -56,15 +67,8 @@ class MainActivity : ComponentActivity() {
 //앱의 모든 화면 관리
 sealed class Screen(val route: String, val icon: ImageVector, val title: String) {
     object Calendar : Screen("calendar", Icons.Default.DateRange, "가계부")
-    object Gallery : Screen("gallery", Icons.Default.Star, "갤러리")
-    object Statistics : Screen("statistics", Icons.Default.Settings, "통계")
-
-    data class DailyDetail(val date: Long) : Screen("daily_detail/${date}", Icons.Default.Today, "일별 상세")
-    data class AddExpense(val initialDate: Long? = null) : Screen(
-        route = if (initialDate != null) "add_expense/${initialDate}" else "add_expense",
-        icon = Icons.Default.Add,
-        title = "지출 추가"
-    )
+    object Gallery : Screen("gallery", Icons.Default.Image, "갤러리")
+    object Statistics : Screen("statistics", Icons.Default.QueryStats, "통계")
 }
 
 // 하단 네비게이션에 표시될 메인 화면들
@@ -76,33 +80,33 @@ val bottomNavItems = listOf(
 
 @Composable
 fun AccountBookApp() {
-    // 화면 상태를 중앙에서 관리하여 예측 가능한 네비게이션 제공
-    var currentScreen by remember { mutableStateOf<Screen>(Screen.Calendar) }
+    // Navigation Controller 생성
+    val navController = rememberNavController()
     // Hilt로 ViewModel 주입
     val mainViewModel: MainViewModel = hiltViewModel()
     val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
     val transactions by mainViewModel.monthlyTransactions.collectAsStateWithLifecycle()
     
-    // 기존 ExpenseViewModel도 일단 유지 (점진적 마이그레이션)
-    val expenseViewModel: ExpenseViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    // 현재 route를 추적
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.onPrimary,
         bottomBar = {
             AppBottomBar(
-                currentScreen = currentScreen,
-                shouldShowBottomBar = !isDetailScreen(currentScreen),
-                onScreenSelected = { screen -> currentScreen = screen }
+                navController = navController,
+                currentRoute = currentRoute,
+                shouldShowBottomBar = !isDetailRoute(currentRoute)
             )
         }
     ) { paddingValues ->
-        // 메인 콘텐츠 영역
-        AppContent(
-            currentScreen = currentScreen,
-            viewModel = expenseViewModel,  // 일단 기존 ViewModel 사용
-            monthlyGoal = mainViewModel.monthlyBudget,
-            onGoalChange = { mainViewModel.updateMonthlyBudget(it) },
-            onNavigateToScreen = { screen -> currentScreen = screen },
+        // NavHost로 네비게이션 관리
+        AppNavHost(
+            navController = navController,
+            mainViewModel = mainViewModel,
+            uiState = uiState,
+            transactions = transactions,
             modifier = Modifier.padding(paddingValues)
         )
     }
@@ -111,9 +115,9 @@ fun AccountBookApp() {
 // BottomBar
 @Composable
 private fun AppBottomBar(
-    currentScreen: Screen,
-    shouldShowBottomBar: Boolean,
-    onScreenSelected: (Screen) -> Unit
+    navController: NavHostController,
+    currentRoute: String?,
+    shouldShowBottomBar: Boolean
 ) {
     if (shouldShowBottomBar) {
         NavigationBar(
@@ -121,12 +125,16 @@ private fun AppBottomBar(
             tonalElevation = 3.dp
         ) {
             bottomNavItems.forEach { screen ->
+                val selected = currentRoute == screen.route || 
+                    (currentRoute?.startsWith("daily_detail") == true && screen.route == "calendar") ||
+                    (currentRoute?.startsWith("add_expense") == true && screen.route == "calendar")
+                    
                 NavigationBarItem(
                     icon = {
                         Icon(
                             screen.icon,
                             contentDescription = screen.title,
-                            tint = if (isCurrentMainScreen(currentScreen, screen)) {
+                            tint = if (selected) {
                                 MaterialTheme.colorScheme.primary
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
@@ -137,15 +145,24 @@ private fun AppBottomBar(
                         Text(
                             text = screen.title,
                             style = MaterialTheme.typography.labelMedium,
-                            fontWeight = if (isCurrentMainScreen(currentScreen, screen)) {
+                            fontWeight = if (selected) {
                                 FontWeight.Medium
                             } else {
                                 FontWeight.Normal
                             }
                         )
                     },
-                    selected = isCurrentMainScreen(currentScreen, screen),
-                    onClick = { onScreenSelected(screen) },
+                    selected = selected,
+                    onClick = { 
+                        navController.navigate(screen.route) {
+                            // 백스택 관리: 메인 화면들 간 이동시
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = MaterialTheme.colorScheme.primary,
                         selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -159,95 +176,109 @@ private fun AppBottomBar(
     }
 }
 
-// 메인 콘텐츠 네비게이션 로직
+// NavHost로 네비게이션 관리
 @Composable
-private fun AppContent(
-    currentScreen: Screen,
-    viewModel: ExpenseViewModel,
-    monthlyGoal: Int,
-    onGoalChange: (Int) -> Unit,
-    onNavigateToScreen: (Screen) -> Unit,
+private fun AppNavHost(
+    navController: NavHostController,
+    mainViewModel: MainViewModel,
+    uiState: MainUiState,
+    transactions: List<Transaction>,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier.fillMaxSize()
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Calendar.route,
+        modifier = modifier
     ) {
-        when (currentScreen) {
-            is Screen.Calendar -> {
-                CalendarMainScreen(
-                    viewModel = viewModel,
-                    modifier = Modifier.fillMaxSize(),
-                    monthlyGoal = monthlyGoal,
-                    onDateSelected = { selectedDate ->
-                        // 달력에서 날짜 선택 시 해당 날짜의 상세 화면으로 이동
-                        onNavigateToScreen(Screen.DailyDetail(selectedDate))
-                    }
-                )
-            }
-
-            is Screen.Gallery -> {
-                ExpenseGalleryScreen(
-                    viewModel = viewModel,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-
-            is Screen.Statistics -> {
-                ExpenseStatisticsScreen(
-                    monthlyGoal = monthlyGoal,
-                    onGoalChange = onGoalChange,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-
-            is Screen.DailyDetail -> {
-                DailyExpenseScreen(
-                    selectedDate = currentScreen.date,
-                    viewModel = viewModel,
-                    modifier = Modifier.fillMaxSize(),
-                    onNavigateBack = {
-                        // 상세 화면에서 달력으로 복귀
-                        onNavigateToScreen(Screen.Calendar)
-                    },
-                    onNavigateToAdd = { date ->
-                        // 특정 날짜로 지출 추가 화면 이동
-                        onNavigateToScreen(Screen.AddExpense(initialDate = date))
-                    }
-                )
-            }
-
-            is Screen.AddExpense -> {
-                AddExpenseScreen(
-                    viewModel = viewModel,
-                    modifier = Modifier.fillMaxSize(),
-                    initialDate = currentScreen.initialDate,
-                    onNavigateBack = {
-                        // 지출 추가 완료 후 적절한 화면으로 복귀
-                        if (currentScreen.initialDate != null) {
-                            onNavigateToScreen(Screen.DailyDetail(currentScreen.initialDate))
-                        } else {
-                            onNavigateToScreen(Screen.Calendar)
-                        }
-                    }
-                )
-            }
+        // 달력 화면
+        composable(Screen.Calendar.route) {
+            val adapter = remember { ViewModelAdapter(mainViewModel) }
+            CalendarMainScreen(
+                viewModel = adapter,
+                monthlyGoal = uiState.monthlyBudget,
+                onDateSelected = { selectedDate ->
+                    navController.navigate("daily_detail/$selectedDate")
+                },
+                onNavigateToAdd = { date ->
+                    navController.navigate("add_expense/$date")
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        
+        // 갤러리 화면
+        composable(Screen.Gallery.route) {
+            val adapter = remember { ViewModelAdapter(mainViewModel) }
+            ExpenseGalleryScreen(
+                viewModel = adapter,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        
+        // 통계 화면
+        composable(Screen.Statistics.route) {
+            val adapter = remember { ViewModelAdapter(mainViewModel) }
+            ExpenseStatisticsScreen(
+                viewModel = adapter,
+                monthlyGoal = uiState.monthlyBudget,
+                onGoalChange = { newGoal ->
+                    mainViewModel.updateMonthlyBudget(newGoal)
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        
+        // 일별 상세 화면
+        composable(
+            route = "daily_detail/{date}",
+            arguments = listOf(navArgument("date") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val date = backStackEntry.arguments?.getLong("date") ?: System.currentTimeMillis()
+            val adapter = remember { ViewModelAdapter(mainViewModel) }
+            DailyExpenseScreen(
+                selectedDate = date,
+                viewModel = adapter,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAdd = { selectedDate ->
+                    navController.navigate("add_expense/$selectedDate")
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        
+        // 지출 추가 화면
+        composable(
+            route = "add_expense/{initialDate}",
+            arguments = listOf(navArgument("initialDate") { 
+                type = NavType.LongType
+                nullable = false
+            })
+        ) { backStackEntry ->
+            val initialDate = backStackEntry.arguments?.getLong("initialDate")
+            val adapter = remember { ViewModelAdapter(mainViewModel) }
+            AddExpenseScreen(
+                viewModel = adapter,
+                initialDate = initialDate,
+                onNavigateBack = { navController.popBackStack() },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        
+        // 날짜 없이 지출 추가
+        composable("add_expense") {
+            val adapter = remember { ViewModelAdapter(mainViewModel) }
+            AddExpenseScreen(
+                viewModel = adapter,
+                initialDate = null,
+                onNavigateBack = { navController.popBackStack() },
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 }
 
 //조건 로직
-private fun isDetailScreen(screen: Screen): Boolean {
-    return screen is Screen.DailyDetail || screen is Screen.AddExpense
-}
-
-private fun isCurrentMainScreen(currentScreen: Screen, targetScreen: Screen): Boolean {
-    return when {
-        currentScreen is Screen.Calendar && targetScreen is Screen.Calendar -> true
-        currentScreen is Screen.Gallery && targetScreen is Screen.Gallery -> true
-        currentScreen is Screen.Statistics && targetScreen is Screen.Statistics -> true
-        // 상세 화면에서도 해당하는 메인 화면을 활성화 상태로 표시
-        currentScreen is Screen.DailyDetail && targetScreen is Screen.Calendar -> true
-        currentScreen is Screen.AddExpense && targetScreen is Screen.Calendar -> true
-        else -> false
-    }
+private fun isDetailRoute(route: String?): Boolean {
+    return route?.startsWith("daily_detail") == true || 
+           route?.startsWith("add_expense") == true
 }

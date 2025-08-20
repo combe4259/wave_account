@@ -37,7 +37,7 @@ import com.example.accountbook.model.Income
 import com.example.accountbook.ui.components.LiquidFill
 import com.example.accountbook.ui.components.getIconEmoji
 import com.example.accountbook.ui.theme.MainColor
-import com.example.accountbook.view.ExpenseViewModel
+import com.example.accountbook.presentation.adapter.ViewModelAdapter
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -58,7 +58,7 @@ data class MonthlyIncomeExpenseData(
 // 달력 메인 구현
 @Composable
 fun CalendarMainScreen(
-    viewModel: ExpenseViewModel,
+    viewModel: ViewModelAdapter,
     monthlyGoal: Int,
     modifier: Modifier = Modifier,
     onDateSelected: (Long) -> Unit,

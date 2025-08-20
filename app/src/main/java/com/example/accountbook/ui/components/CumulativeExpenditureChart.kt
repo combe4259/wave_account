@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.accountbook.view.ExpenseViewModel
+import com.example.accountbook.presentation.adapter.ViewModelAdapter
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.Entry
@@ -36,7 +36,7 @@ fun SecondLineChartDemo(
     headerMonth: Calendar,
     compareMonth: Calendar,
     monthlyGoal: Int,
-    viewModel: ExpenseViewModel = viewModel()
+    viewModel: ViewModelAdapter
 ) {
     // 1) Observe all expenses
     val expensesWithCategory by viewModel.allExpensesWithCategory.observeAsState(initial = emptyList())

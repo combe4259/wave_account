@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.accountbook.view.ExpenseViewModel
+import com.example.accountbook.presentation.adapter.ViewModelAdapter
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.Entry
@@ -27,7 +27,7 @@ import androidx.compose.runtime.key
 fun FirstLineChartDemo(
     modifier: Modifier = Modifier,
     currentMonth: Calendar,
-    viewModel: ExpenseViewModel = viewModel()
+    viewModel: ViewModelAdapter
 ) {
     val expensesWithCategory by viewModel.allExpensesWithCategory.observeAsState(initial = emptyList())
     val year  = currentMonth.get(Calendar.YEAR)

@@ -1,6 +1,6 @@
 package com.example.accountbook.dto
 
-import com.example.accountbook.Screen
+import java.util.Calendar
 
 data class MonthlyIncomeExpenseData(
     val totalIncome: Double,
@@ -11,5 +11,5 @@ data class MonthlyIncomeExpenseData(
     val dailyExpenseTotals: Map<Int, Double>,
     val allIncomes: List<IncomeWithCategory>,
     val allExpenses: List<ExpenseWithCategory>,
-    val month: Screen.Calendar
+    val month: Calendar
 )

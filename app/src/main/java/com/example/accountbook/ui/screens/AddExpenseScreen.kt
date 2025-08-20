@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.accountbook.model.Expense
 import com.example.accountbook.model.ExpenseCategory
-import com.example.accountbook.view.ExpenseViewModel
+import com.example.accountbook.presentation.adapter.ViewModelAdapter
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -47,7 +47,7 @@ import java.io.File
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddExpenseScreen(
-    viewModel: ExpenseViewModel,
+    viewModel: ViewModelAdapter,
     modifier: Modifier = Modifier,
     onNavigateBack: () -> Unit,
     initialDate: Long? = null

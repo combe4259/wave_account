@@ -5,9 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.accountbook.domain.model.MonthlyStatistics
 import com.example.accountbook.domain.model.Transaction
+import com.example.accountbook.domain.model.Category
+import com.example.accountbook.domain.usecase.category.GetAllCategoriesUseCase
 import com.example.accountbook.domain.usecase.statistics.GetMonthlyStatisticsUseCase
 import com.example.accountbook.domain.usecase.transaction.AddTransactionUseCase
+import com.example.accountbook.domain.usecase.transaction.GetAllTransactionsUseCase
 import com.example.accountbook.domain.usecase.transaction.GetMonthlyTransactionsUseCase
+import com.example.accountbook.domain.repository.TransactionRepository
 import com.example.accountbook.presentation.common.UiEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -17,8 +21,11 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
+    private val repository: TransactionRepository,
+    private val getAllTransactions: GetAllTransactionsUseCase,
     private val getMonthlyTransactions: GetMonthlyTransactionsUseCase,
     private val getMonthlyStatistics: GetMonthlyStatisticsUseCase,
+    private val getAllCategories: GetAllCategoriesUseCase,
     private val addTransaction: AddTransactionUseCase,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -60,6 +67,53 @@ class MainViewModel @Inject constructor(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = null
+        )
+    
+    // 전체 거래 내역 (갤러리, 통계 화면용)
+    val allTransactions: StateFlow<List<Transaction>> = getAllTransactions()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+    
+    // 사진이 있는 거래만
+    val transactionsWithPhotos: StateFlow<List<Transaction.Expense>> = 
+        repository.getTransactionsWithPhotos()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+    
+    // 모든 카테고리
+    val allCategories: StateFlow<List<Category>> = getAllCategories()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+    
+    // 지출 카테고리만
+    val expenseCategories: StateFlow<List<Category>> = allCategories
+        .map { categories ->
+            categories.filter { it.type == com.example.accountbook.domain.model.CategoryType.EXPENSE }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+    
+    // 수입 카테고리만
+    val incomeCategories: StateFlow<List<Category>> = allCategories
+        .map { categories ->
+            categories.filter { it.type == com.example.accountbook.domain.model.CategoryType.INCOME }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
         )
     
     // UI 이벤트 (SnackBar, Dialog 등)
@@ -104,6 +158,32 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             _uiEvent.emit(UiEvent("월 목표가 ${amount}원으로 변경되었습니다"))
         }
+    }
+    
+    fun deleteTransaction(id: Long, isExpense: Boolean) {
+        viewModelScope.launch {
+            try {
+                repository.deleteTransaction(id, isExpense)
+                _uiEvent.emit(UiEvent("삭제되었습니다"))
+            } catch (e: Exception) {
+                _uiEvent.emit(UiEvent("삭제 실패: ${e.message}"))
+            }
+        }
+    }
+    
+    fun addCategory(category: Category) {
+        viewModelScope.launch {
+            try {
+                repository.addCategory(category)
+                _uiEvent.emit(UiEvent("카테고리가 추가되었습니다"))
+            } catch (e: Exception) {
+                _uiEvent.emit(UiEvent("카테고리 추가 실패: ${e.message}"))
+            }
+        }
+    }
+    
+    fun getCurrentYearMonth(): Pair<Int, Int> {
+        return _selectedYearMonth.value
     }
 }
 

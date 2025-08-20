@@ -28,7 +28,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.accountbook.view.ExpenseViewModel
+import com.example.accountbook.presentation.adapter.ViewModelAdapter
 import com.github.mikephil.charting.utils.ColorTemplate
 import java.time.Instant
 import java.time.ZoneId
@@ -63,7 +63,7 @@ import java.time.YearMonth
 fun OverviewTab(
     currentMonth: Calendar,
     onMonthChange: (Calendar) -> Unit,
-    viewModel: ExpenseViewModel,
+    viewModel: ViewModelAdapter,
     sumsThisMonth: List<Pair<String, Float>>,
     hasExpenses: Boolean,
     modifier: Modifier = Modifier
@@ -138,7 +138,7 @@ fun OverviewTab(
 @Composable
 fun ProjectionTab(
     currentMonth: Calendar,
-    viewModel: ExpenseViewModel,
+    viewModel: ViewModelAdapter,
     expenses: List<ExpenseWithCategory>,
     sumsThisMonth: List<Pair<String, Float>>,
     sliceColors: List<Int>,
@@ -201,7 +201,7 @@ fun ExpenseStatisticsScreen(
     modifier: Modifier = Modifier,
     monthlyGoal: Int,
     onGoalChange: (Int) -> Unit,
-    viewModel: ExpenseViewModel = viewModel()
+    viewModel: ViewModelAdapter = viewModel()
 ) {
     var currentMonth by remember { mutableStateOf(Calendar.getInstance()) }
     // 스크롤 상태를 UI에서 직접 관리 (SavedState로 화면 회전 대응)

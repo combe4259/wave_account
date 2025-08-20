@@ -29,9 +29,7 @@ import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.accountbook.dto.ExpenseWithCategory
-import com.example.accountbook.view.ExpenseViewModel
-import com.example.accountbook.view.ExpenseGalleryViewModel
-import com.example.accountbook.view.GalleryUiState
+import com.example.accountbook.presentation.adapter.ViewModelAdapter
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -40,7 +38,7 @@ import java.util.*
 //갤러리 메인 화면
 @Composable
 fun ExpenseGalleryScreen(
-    viewModel: ExpenseViewModel,
+    viewModel: ViewModelAdapter,
     onNavigateBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {

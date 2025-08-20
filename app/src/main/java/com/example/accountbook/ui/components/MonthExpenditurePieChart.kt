@@ -22,7 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.accountbook.view.ExpenseViewModel
+import com.example.accountbook.presentation.adapter.ViewModelAdapter
 import com.github.mikephil.charting.animation.Easing
 import com.github.mikephil.charting.charts.PieChart
 import com.github.mikephil.charting.data.PieData
@@ -48,7 +48,7 @@ import kotlin.math.min
 fun PieChartByCategory(
     currentMonth: Calendar,
     sumsThisMonth: List<Pair<String, Float>>,
-    viewModel: ExpenseViewModel = viewModel(),
+    viewModel: ViewModelAdapter,
     chartHeight: Dp,
     modifier: Modifier = Modifier
         .wrapContentHeight()

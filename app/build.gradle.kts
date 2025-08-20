@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.accountbook"
+    namespace = "com.combe4259.waveaccount"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.accountbook"
+        applicationId = "com.combe4259.waveaccount"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
@@ -54,8 +54,8 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.runtime.livedata)
     // Hilt
-    implementation("com.google.dagger:hilt-android:2.48")
-    ksp("com.google.dagger:hilt-compiler:2.48")
+    implementation("com.google.dagger:hilt-android:2.51.1")
+    ksp("com.google.dagger:hilt-compiler:2.51.1")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
