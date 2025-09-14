@@ -92,7 +92,7 @@ fun DailyExpenseScreen(
     val totalDailyIncome = dailyIncomes.sumOf { it.amount }
 
     Scaffold(
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = {
@@ -104,7 +104,7 @@ fun DailyExpenseScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
+                    containerColor = MaterialTheme.colorScheme.surface,
                     titleContentColor = Color.Black,
                     navigationIconContentColor = Color.Black
                 )
@@ -242,7 +242,7 @@ fun DailySummaryCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Column(
@@ -408,7 +408,7 @@ fun DailyExpenseItem(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         onClick = onClick
     ) {
@@ -495,7 +495,7 @@ fun IncomeDetailDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         title = {
             Text(
                 text = "수입 상세 정보",
@@ -556,7 +556,7 @@ fun ExpenseDetailDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         title = {
             Text(
                 text = "지출 상세 정보",
@@ -656,7 +656,7 @@ fun DeleteConfirmDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         title = {
             Text(
                 text = "$itemType 내역 삭제",

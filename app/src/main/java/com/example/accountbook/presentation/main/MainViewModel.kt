@@ -163,6 +163,20 @@ class MainViewModel @Inject constructor(
     fun deleteTransaction(id: Long, isExpense: Boolean) {
         viewModelScope.launch {
             try {
+                // 지출인 경우 이미지 파일도 삭제
+                if (isExpense) {
+                    val transaction = allTransactions.value
+                        .filterIsInstance<Transaction.Expense>()
+                        .find { it.id == id }
+                    
+                    transaction?.photoUri?.let { photoPath ->
+                        // 파일 경로인 경우만 삭제 (content:// URI는 제외)
+                        if (photoPath.startsWith("/")) {
+                            com.example.accountbook.ui.utils.ImageUtils.deleteImageFile(photoPath)
+                        }
+                    }
+                }
+                
                 repository.deleteTransaction(id, isExpense)
                 _uiEvent.emit(UiEvent("삭제되었습니다"))
             } catch (e: Exception) {

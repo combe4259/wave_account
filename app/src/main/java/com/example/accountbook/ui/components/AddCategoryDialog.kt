@@ -52,7 +52,7 @@ fun AddCategoryDialog(
                 .padding(16.dp),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
             )
         ) {
             Column(
@@ -126,7 +126,7 @@ private fun CategoryPreview(
         Card(
             modifier = Modifier.size(80.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
 
             ),
             shape = RoundedCornerShape(12.dp)
@@ -144,7 +144,8 @@ private fun CategoryPreview(
                     text = name.take(8), // 최대 8글자만 표시
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -165,7 +166,8 @@ private fun CategoryNameInput(
         Text(
             text = "카테고리 이름",
             style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface
         )
         OutlinedTextField(
             value = name,
@@ -212,7 +214,8 @@ private fun IconSelectionSection(
         Text(
             text = "아이콘 선택",
             style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         LazyVerticalGrid(
@@ -244,9 +247,9 @@ private fun IconOption(
     selectedColor: Color = MaterialTheme.colorScheme.primary
 ) {
     val backgroundColor = if (isSelected) {
-        Color.White
+        selectedColor.copy(alpha = 0.1f)
     } else {
-        Color.White
+        MaterialTheme.colorScheme.surfaceVariant
     }
 
     val borderColor = if (isSelected) {

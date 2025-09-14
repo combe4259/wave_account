@@ -44,6 +44,7 @@ import com.example.accountbook.model.Income
 import com.example.accountbook.model.IncomeCategory
 import com.example.accountbook.ui.components.AddCategoryDialog
 import java.io.File
+import com.example.accountbook.ui.utils.ImageUtils
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddExpenseScreen(
@@ -77,7 +78,7 @@ fun AddExpenseScreen(
     val currentCategories = if (selectedTab == 0) incomeCategories else expenseCategories
 
     Scaffold(
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = { Text("") },
@@ -87,7 +88,7 @@ fun AddExpenseScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
+                    containerColor = MaterialTheme.colorScheme.surface,
                     titleContentColor = Color.Black,
                     navigationIconContentColor = Color.Black
                 )
@@ -106,7 +107,7 @@ fun AddExpenseScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth().offset(y = (-20).dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color.White
+                        containerColor = MaterialTheme.colorScheme.surface
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
@@ -114,7 +115,7 @@ fun AddExpenseScreen(
                     TabRow(
                         selectedTabIndex = selectedTab,
                         modifier = Modifier.fillMaxWidth(),
-                        containerColor = Color.White,
+                        containerColor = MaterialTheme.colorScheme.surface,
                         contentColor = MaterialTheme.colorScheme.primary,
                         indicator = { tabPositions ->  // ← 여기가 밑줄 설정
                             TabRowDefaults.SecondaryIndicator(
@@ -173,7 +174,7 @@ fun AddExpenseScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color.White,
+                        containerColor = MaterialTheme.colorScheme.surface,
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
@@ -205,7 +206,7 @@ fun AddExpenseScreen(
                         .height(120.dp)
                         .clickable { uiState = uiState.copy(showDatePicker = true) },
                     colors = CardDefaults.cardColors(
-                        containerColor = Color.White,
+                        containerColor = MaterialTheme.colorScheme.surface,
                     )
                 ) {
                     Column(
@@ -267,12 +268,17 @@ fun AddExpenseScreen(
                                 viewModel.insertIncome(income)
                             } else {
                                 // 지출 저장
+                                // 이미지가 있으면 내부 저장소로 복사
+                                val permanentImagePath = uiState.selectedImageUri?.let { uri ->
+                                    ImageUtils.copyImageToInternalStorage(context, uri)
+                                }
+                                
                                 val expense = Expense(
                                     productName = uiState.productName,
                                     amount = uiState.amountAsDouble,
                                     categoryId = uiState.selectedCategoryId,
                                     date = uiState.selectedDate,
-                                    photoUri = uiState.selectedImageUri?.toString()
+                                    photoUri = permanentImagePath  // 영구 저장된 경로 사용
                                 )
                                 viewModel.insertExpense(expense)
                             }
@@ -440,7 +446,7 @@ private fun MainInfoCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -493,7 +499,7 @@ private fun ImageSectionCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
         )
     ) {
         if (selectedImageUri != null) {
@@ -573,7 +579,7 @@ private fun DatePickerDialog(
                             selectedDayContainerColor = primaryColor,
                             todayContentColor = primaryColor,
                             todayDateBorderColor = primaryColor,
-                            containerColor = Color.White
+                            containerColor = MaterialTheme.colorScheme.surface
                         )
                     )
                 }
@@ -605,7 +611,7 @@ private fun ImageOptionsDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         title = { Text("사진 선택") },
         confirmButton = {
             TextButton(onClick = onDismiss) {

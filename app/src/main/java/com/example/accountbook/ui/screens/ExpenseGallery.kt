@@ -28,6 +28,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import java.io.File
 import com.example.accountbook.dto.ExpenseWithCategory
 import com.example.accountbook.presentation.adapter.ViewModelAdapter
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -103,7 +104,7 @@ private fun GalleryContent(
                     Text(
                         text = "갤러리를 불러오는 중...",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.surface
                     )
                 }
             }
@@ -143,7 +144,7 @@ private fun GalleryHeader(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Row(
@@ -216,7 +217,7 @@ private fun EmptyGalleryState(
 
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.surface
             )
         ) {
             Text(
@@ -278,7 +279,13 @@ private fun GalleryImageItem(
             // 메인 이미지
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data(Uri.parse(expense.photoUri))
+                    .data(if (expense.photoUri?.startsWith("/") == true) {
+                        // 파일 경로인 경우 File URI로 변환
+                        File(expense.photoUri)
+                    } else {
+                        // content:// URI인 경우 그대로 사용
+                        Uri.parse(expense.photoUri)
+                    })
                     .crossfade(300)
                     .build(),
                 contentDescription = "${expense.productName} 사진",
@@ -300,7 +307,7 @@ private fun GalleryImageItem(
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface
                 ),
                 shape = MaterialTheme.shapes.extraSmall
             ) {
@@ -334,7 +341,7 @@ private fun GalleryImageItem(
 
                         // 카테고리
                         Surface(
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.surface,
                             shape = MaterialTheme.shapes.extraSmall
                         ) {
                             Text(
@@ -373,8 +380,8 @@ private fun ExpenseDetailDialog(
                 .fillMaxWidth()
                 .padding(16.dp),
             shape = MaterialTheme.shapes.large,
-            tonalElevation = 16.dp,
-            color = Color.White
+            tonalElevation = 0.dp,
+            color = MaterialTheme.colorScheme.background
         ) {
             Column(
                 modifier = Modifier.padding(20.dp)
@@ -384,12 +391,19 @@ private fun ExpenseDetailDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(320.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                    shape = MaterialTheme.shapes.medium
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
                 ) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
-                            .data(Uri.parse(expense.photoUri))
+                            .data(if (expense.photoUri?.startsWith("/") == true) {
+                                File(expense.photoUri)
+                            } else {
+                                Uri.parse(expense.photoUri)
+                            })
                             .crossfade(300)
                             .build(),
                         contentDescription = "${expense.productName} 원본",
@@ -413,8 +427,9 @@ private fun ExpenseDetailDialog(
                 // 정보 섹션
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = Color.White
-                    )
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp)

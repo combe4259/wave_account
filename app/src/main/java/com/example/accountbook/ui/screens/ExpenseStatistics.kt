@@ -248,7 +248,7 @@ fun ExpenseStatisticsScreen(
     ) {
         TabRow(
             selectedTabIndex = selectedTab,
-            containerColor   = Color.White,
+            containerColor   = MaterialTheme.colorScheme.surface,
             contentColor     = MaterialTheme.colorScheme.primary
         ) {
             Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {

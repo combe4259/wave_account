@@ -92,7 +92,7 @@ fun AccountBookApp() {
     val currentRoute = navBackStackEntry?.destination?.route
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.onPrimary,
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             AppBottomBar(
                 navController = navController,
@@ -121,8 +121,8 @@ private fun AppBottomBar(
 ) {
     if (shouldShowBottomBar) {
         NavigationBar(
-            containerColor = Color.White,
-            tonalElevation = 3.dp
+            containerColor = MaterialTheme.colorScheme.background,
+            tonalElevation = 0.dp
         ) {
             bottomNavItems.forEach { screen ->
                 val selected = currentRoute == screen.route || 
@@ -168,7 +168,7 @@ private fun AppBottomBar(
                         selectedTextColor = MaterialTheme.colorScheme.primary,
                         unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        indicatorColor = Color.White
+                        indicatorColor = MaterialTheme.colorScheme.background.copy(alpha = 0.1f)
                     )
                 )
             }

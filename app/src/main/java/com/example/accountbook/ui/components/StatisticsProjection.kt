@@ -249,7 +249,7 @@ fun MonthlyGoalRow(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -291,7 +291,7 @@ fun MonthlyGoalRow(
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
             confirmButton = {
                 TextButton(
                     onClick = {

@@ -78,7 +78,7 @@ fun CalendarMainScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.onPrimary,
+        containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -174,7 +174,7 @@ fun CalendarMainScreen(
             // 탭 추가
             TabRow(
                 selectedTabIndex = selectedTab,
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.primary
             ) {
                 Tab(
@@ -259,7 +259,7 @@ fun IncomeExpenseSummaryCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Row(
@@ -460,7 +460,7 @@ private fun DayIncomeExpenseHeader(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -518,7 +518,7 @@ fun DailyIncomeItem(
             .fillMaxWidth()
             .clickable { onClick() },
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -708,7 +708,7 @@ fun CalendarDay(
             .aspectRatio(1f)
             .clickable { onDateClick(dayInfo.date) },
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = if (hasExpense || hasIncome) 2.dp else 1.dp

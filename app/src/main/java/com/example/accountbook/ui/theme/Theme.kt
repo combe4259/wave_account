@@ -8,28 +8,37 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = MainColor,
-    secondary = SecondaryColor,
-    tertiary = AccentColor
+    primary = MainColorDark,
+    secondary = SecondaryColorDark,
+    tertiary = AccentColorDark,
+    background = BackgroundDark,
+    surface = SurfaceDark,
+    onPrimary = Black,
+    onSecondary = White,
+    onTertiary = Black,
+    onBackground = OnBackgroundDark,
+    onSurface = OnSurfaceDark,
+    surfaceVariant = Color(0xFF2C2C34),
+    onSurfaceVariant = Color(0xFFCACACA)
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = MainColor,
     secondary = SecondaryColor,
-    tertiary = AccentColor
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    tertiary = AccentColor,
+    background = White,
+    surface = White,
+    onPrimary = White,
+    onSecondary = Black,
+    onTertiary = White,
+    onBackground = Black,
+    onSurface = Black,
+    surfaceVariant = Color(0xFFF5F5F5),
+    onSurfaceVariant = Color(0xFF49454E)
 )
 
 @Composable

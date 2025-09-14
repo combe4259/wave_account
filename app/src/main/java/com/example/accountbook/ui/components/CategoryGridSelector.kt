@@ -159,7 +159,7 @@ fun CategoryGridItem(
     selectedColor: Color = Color(0xFF5E69EE)
 ) {
     val MainColor = Color(0xFF5E69EE)
-    val backgroundColor = Color.White
+    val backgroundColor = MaterialTheme.colorScheme.surface
     val borderColor = if (isSelected) {
         selectedColor
     } else {
@@ -235,7 +235,7 @@ fun AddNewCategoryItem(
             )
             .clip(RoundedCornerShape(8.dp))
             .clickable { onClick() },
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 0.dp
     ) {
         Column(
